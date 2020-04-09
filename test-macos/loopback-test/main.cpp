@@ -90,7 +90,7 @@ static const char* send_port;
 static const char* recv_port;
 static int send_fd;
 static int recv_fd;
-static int num_bytes = 200000;
+static int num_bytes = 300000;
 static int bit_rate = 921600;
 
 /**
@@ -169,7 +169,7 @@ int main(int argc, const char * argv[]) {
     printf("Gross bit rate: %'d bps\n", bit_rate);
     int br = (int)(num_bytes * 8 / duration);
     printf("Net bit rate:   %'d bps\n", br);
-    printf("Overhead: %.1f%%\n", ((bit_rate * 8 / 10.0) / br - 1) * 100);
+    printf("Overhead: %.1f%%\n", bit_rate * 80.0 / br - 100);
 
     return 0;
 }
@@ -298,12 +298,6 @@ int open_port(const char* port) {
         exit(1);
     }
 
-    speed_t speed = bit_rate;
-    if (ioctl(fd, IOSSIOSPEED, &speed) == -1) {
-        fprintf(stderr, "Cannot set bit rate to %ld\n", speed);
-        exit(4);
-    }
-
     struct termios options;
     tcgetattr(fd, &options);
 
@@ -322,6 +316,13 @@ int open_port(const char* port) {
     options.c_cc[VMIN]  = 0;
     
     tcsetattr(fd, TCSANOW, &options);
+
+    // Use special call to set custom bit rates
+    speed_t speed = bit_rate;
+    if (ioctl(fd, IOSSIOSPEED, &speed) == -1) {
+        fprintf(stderr, "Cannot set bit rate to %ld\n", speed);
+        exit(4);
+    }
 
     return fd;
 }
