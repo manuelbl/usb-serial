@@ -62,7 +62,9 @@ private:
     uint32_t bits;
 };
 
+
 prng::prng(uint32_t init) : state(init), nbytes(0), bits(0) { }
+
 
 uint32_t prng::next() {
     uint32_t x = state;
@@ -72,6 +74,7 @@ uint32_t prng::next() {
     state = x;
     return x;
 }
+
 
 void prng::fill(uint8_t* buf, size_t len) {
     for (size_t i = 0; i < len; i++) {
@@ -92,18 +95,23 @@ static int send_fd;
 static int recv_fd;
 static int num_bytes = 300000;
 static int bit_rate = 921600;
+static volatile bool test_cancelled = false;
+
 
 /**
  * Checks the program arguments
  * @param argc number of arguments
  * @param argv argument array
+ * @return 0 on success, other value on error
  */
-static void check_usage(int argc, const char* argv[]);
+static int check_usage(int argc, const char* argv[]);
 
 /**
  * Open the serial port(s) specified on the command line
+ *
+ * @return 0 on success, other value on error
  */
-static void open_ports();
+static int open_ports();
 
 /**
  * Drain pending input data for specified port.
@@ -119,7 +127,7 @@ static void close_ports();
 /**
  * Opens the specified serial port
  * @param port the path to the serial port
- * @return file descriptor
+ * @return file descriptor, or -1 on error
  */
 static int open_port(const char* port);
 
@@ -144,9 +152,11 @@ static void recv();
 int main(int argc, const char * argv[]) {
     setlocale(LC_NUMERIC, "en_US");
 
-    check_usage(argc, argv);
+    if (check_usage(argc, argv) != 0)
+        exit(1);
     
-    open_ports();
+    if (open_ports() != 0)
+        exit(2);
     
     // Run send function in separate thread
     pthread_t t;
@@ -165,52 +175,57 @@ int main(int argc, const char * argv[]) {
     
     close_ports();
 
-    printf("Successfully sent %d bytes in %.1fs\n", num_bytes, duration);
-    printf("Gross bit rate: %'d bps\n", bit_rate);
-    int br = (int)(num_bytes * 8 / duration);
-    printf("Net bit rate:   %'d bps\n", br);
-    printf("Overhead: %.1f%%\n", bit_rate * 80.0 / br - 100);
-
-    return 0;
+    if (!test_cancelled) {
+        printf("Successfully sent %'d bytes in %.1fs\n", num_bytes, duration);
+        printf("Gross bit rate: %'d bps\n", bit_rate);
+        int br = (int)(num_bytes * 8 / duration);
+        printf("Net bit rate:   %'d bps\n", br);
+        printf("Overhead: %.1f%%\n", bit_rate * 80.0 / br - 100);
+    }
+    
+    return test_cancelled ? 3 : 0;
 }
 
 
-void check_usage(int argc, const char* argv[]) {
-    if (argc >= 3 && argc <= 5) {
-        send_port = argv[1];
-        recv_port = argv[2];
-        if (argc >= 4)
-            bit_rate = atoi(argv[3]);
-        if (argc >= 5)
-            num_bytes = atoi(argv[4]);
-        
-        if (bit_rate < 1200 || bit_rate > 99999999) {
-            fprintf(stderr, "Bit rate %d out of range (1200 .. 99,999,999)\n", bit_rate);
-        } else if (num_bytes < 1) {
-            fprintf(stderr, "Number of bytes %d must be a positive number\n", num_bytes);
-        } else {
-            return;
-        }
-        exit(2);
+int check_usage(int argc, const char* argv[]) {
+    if (argc < 3 || argc > 5) {
+        fprintf(stderr, "Usage: %s send_port recv_port [ bit_rate [ num_bytes ] ]", argv[0]);
+        return 1;
     }
-
-    fprintf(stderr, "Usage: %s send_port recv_port [ bit_rate [ num_bytes ] ]", argv[0]);
-    exit(2);
+    
+    send_port = argv[1];
+    recv_port = argv[2];
+    if (argc >= 4)
+        bit_rate = atoi(argv[3]);
+    if (argc >= 5)
+        num_bytes = atoi(argv[4]);
+        
+    if (bit_rate < 1200 || bit_rate > 99999999) {
+        fprintf(stderr, "Bit rate %d out of range (1200 .. 99,999,999)\n", bit_rate);
+        return 2;
+    }
+    if (num_bytes < 1) {
+        fprintf(stderr, "Number of bytes %d must be a positive number\n", num_bytes);
+        return 3;
+    }
+    
+    return 0;
 }
 
 
 void* send(void* ignore) {
     prng prandom(PRNG_INIT);
-    uint8_t buf[16];
+    uint8_t buf[128];
 
     size_t n = num_bytes;
-    while (n > 0) {
+    while (n > 0 && !test_cancelled) {
         size_t m = std::min(sizeof(buf), n);
         prandom.fill(buf, m);
         size_t k = write(send_fd, buf, m);
         if (k != m) {
             perror("Write failed");
-            exit(3);
+            test_cancelled = true;
+            return NULL;
         }
         n -= m;
     }
@@ -221,36 +236,48 @@ void* send(void* ignore) {
 
 
 void recv() {
-    uint8_t buf[16];
-    uint8_t expected[16];
+    uint8_t buf[128];
+    uint8_t expected[128];
     prng prandom(PRNG_INIT);
     size_t n = 0;
     
-    while (n < num_bytes) {
+    while (n < num_bytes && !test_cancelled) {
         ssize_t k = read(recv_fd, buf, sizeof(buf));
         if (k == 0) {
             fprintf(stderr, "No more data from %s after %ld bytes\n", recv_port, n);
-            exit(5);
+            test_cancelled = true;
+            return;
         }
         
         prandom.fill(expected, k);
         if (memcmp(buf, expected, k) != 0) {
             fprintf(stderr, "Invalid data at pos %ld\n", n);
-            exit(2);
+            test_cancelled = true;
+            return;
         }
         n += k;
     }
 }
 
 
-void open_ports() {
+int open_ports() {
     send_fd = open_port(send_port);
+    if (send_fd == -1)
+        return -1;
+    
     if (strcmp(send_port, recv_port) == 0) {
         recv_fd = send_fd;
+        
     } else {
         recv_fd = open_port(recv_port);
+        if (recv_fd == -1) {
+            close(send_fd);
+            return -1;
+        }
     }
+
     drain_port(recv_fd);
+    return 0;
 }
 
 
@@ -265,6 +292,7 @@ void drain_port(int fd) {
 
 void close_ports() {
     drain_port(recv_fd);
+    
     close(send_fd);
     if (send_fd != recv_fd)
         close(recv_fd);
@@ -295,7 +323,7 @@ int open_port(const char* port) {
     int fd = open(port, O_RDWR | O_NOCTTY);
     if (fd == -1) {
         perror("Unable to open serial port");
-        exit(1);
+        return fd;
     }
 
     struct termios options;
@@ -311,7 +339,7 @@ int open_port(const char* port) {
     clear_bits(options.c_lflag, ICANON | IEXTEN | ISIG | ECHO | ECHOE | ECHONL);
     set_bits(options.c_lflag, 0);
 
-    // Read returns if at least one character has been read
+    // Read returns if no character has been received in 10ms
     options.c_cc[VTIME] = 10;
     options.c_cc[VMIN]  = 0;
     
@@ -321,7 +349,8 @@ int open_port(const char* port) {
     speed_t speed = bit_rate;
     if (ioctl(fd, IOSSIOSPEED, &speed) == -1) {
         fprintf(stderr, "Cannot set bit rate to %ld\n", speed);
-        exit(4);
+        close(fd);
+        return -1;
     }
 
     return fd;
