@@ -1,0 +1,43 @@
+{
+  "platform": "ststm32",
+  "build": {
+    "core": "stm32",
+    "cpu": "cortex-m0",
+    "extra_flags": "-DSTM32F042x6 -DSTM32F042F6 -DSTM32F0",
+    "f_cpu": "48000000L",
+    "libopencm3": {
+      "ldscript": "stm32f04xz6.ld"
+    },
+    "mcu": "stm32f042f6p6"
+  },
+  "connectivity": [
+    "can"
+  ],
+  "debug": {
+    "default_tools": [
+      "stlink"
+    ],
+    "jlink_device": "STM32F042F6",
+    "openocd_board": "stm32f042f6_stlink",
+    "svd_path": "STM32F042x.svd"
+  },
+  "frameworks": [
+    "mbed",
+    "stm32cube",
+    "libopencm3"
+  ],
+  "name": "Generic STM32F042F6",
+  "upload": {
+    "maximum_ram_size": 6144,
+    "maximum_size": 32768,
+    "protocol": "stlink",
+    "protocols": [
+      "jlink",
+      "stlink",
+      "blackmagic",
+      "mbed"
+    ]
+  },
+  "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f042f6.html",
+  "vendor": "Generic"
+}
