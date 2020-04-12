@@ -9,11 +9,13 @@
  */
 
 #include "common.h"
+#include "hardware.h"
 #include "uart.h"
 #include "usb_cdc.h"
 #include "usb_conf.h"
 #include "usb_serial.h"
 #include <libopencm3/cm3/nvic.h>
+#include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/usb/cdc.h>
