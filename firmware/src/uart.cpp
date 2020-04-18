@@ -11,6 +11,7 @@
 #include "common.h"
 #include "hardware.h"
 #include "uart.h"
+#include "usb_dev.h"
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/gpio.h>
@@ -170,6 +171,20 @@ void uart_impl::transmit(const uint8_t *data, size_t len)
     if (size < len)
         transmit(data + size, len - size);
 }
+
+
+void uart_impl::transmit_usb_rx(uint8_t addr)
+{
+    if (usb_dev_get_rx_count(addr) > tx_data_avail())
+        return; // insufficent space in ring buffer
+
+    // copy data to ring buffer
+    tx_buf_head = usb_dev_copy_from_pm(addr, tx_buf, UART_TX_BUF_LEN, tx_buf_head);
+
+    // start transmission
+    start_transmit();
+}
+
 
 void uart_impl::start_transmit()
 {
