@@ -33,7 +33,6 @@ private:
     void notify_serial_state(uint8_t state);
 
     bool is_usb_tx;
-    bool is_tx_high_water;
     uint8_t last_serial_state;
 };
 

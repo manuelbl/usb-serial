@@ -59,6 +59,16 @@ public:
     void transmit(const uint8_t *data, size_t len);
 
     /**
+     * Submits the data in the USB RX buffer for transmission.
+     * 
+     * The data is copied from the USB RX buffer to the UART
+     * transmission buffer and transmitted asynchronously.
+     * 
+     * @param addr USB endpoint address
+     */
+    void transmit_usb_rx(uint8_t addr);
+
+    /**
      * Copy data from the receive buffer in the specified array.
      * 
      * The copied data is removed from the buffer.

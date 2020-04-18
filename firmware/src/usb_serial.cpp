@@ -18,6 +18,7 @@
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/timer.h>
+#include <libopencm3/stm32/st_usbfs.h>
 #include <libopencm3/usb/cdc.h>
 
 #define TIMER_FREQ 1000000U // in Hz
@@ -32,7 +33,6 @@ usb_serial_impl usb_serial;
 void usb_serial_impl::config()
 {
     is_usb_tx = false;
-    is_tx_high_water = false;
     last_serial_state = 0;
 
     usbd_ep_setup(usb_device, DATA_OUT_1, USB_ENDPOINT_ATTR_BULK, CDCACM_PACKET_SIZE, usb_out_cb);
@@ -56,16 +56,10 @@ void usb_serial_impl::config()
 
 void usb_serial_impl::out_cb(usbd_device *dev, uint8_t ep)
 {
-    uint8_t packet[CDCACM_PACKET_SIZE] __attribute__((aligned(4)));
+    uart.transmit_usb_rx(DATA_OUT_1);
 
-    // Retrieve USB data
-    uint16_t len = usbd_ep_read_packet(dev, DATA_OUT_1, packet, CDCACM_PACKET_SIZE);
-    if (len == 0)
-        return;
 
-    // Start transmission via UART
-    uart.transmit(packet, len);
-
+	USB_CLR_EP_RX_CTR(DATA_OUT_1);
     update_nak();
 }
 
@@ -109,10 +103,7 @@ void usb_serial_impl::poll()
 void usb_serial_impl::update_nak()
 {
     bool is_high_water = uart.tx_data_avail() < 128; // two more packages
-    if (is_high_water != is_tx_high_water) {
-        is_tx_high_water = is_high_water;
-        usbd_ep_nak_set(usb_device, DATA_OUT_1, is_high_water);
-    }
+    usbd_ep_nak_set(usb_device, DATA_OUT_1, is_high_water);
 }
 
 // Called when transmission over USB has completed
