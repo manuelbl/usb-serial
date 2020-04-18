@@ -55,10 +55,6 @@
             argument = "/dev/cu.usbmodemEA3DSZCHKB1"
             isEnabled = "YES">
          </CommandLineArgument>
-         <CommandLineArgument
-            argument = "/dev/cu.usbmodemEA3DSZCHKB1"
-            isEnabled = "YES">
-         </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>
    <ProfileAction

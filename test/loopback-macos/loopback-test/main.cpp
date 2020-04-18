@@ -188,13 +188,14 @@ int main(int argc, const char * argv[]) {
 
 
 int check_usage(int argc, const char* argv[]) {
-    if (argc < 3 || argc > 5) {
-        fprintf(stderr, "Usage: %s send_port recv_port [ bit_rate [ num_bytes ] ]", argv[0]);
+    if (argc < 2 || argc > 5) {
+        fprintf(stderr, "Usage: %s send_port [ recv_port [ bit_rate [ num_bytes ] ] ]", argv[0]);
         return 1;
     }
     
-    send_port = argv[1];
-    recv_port = argv[2];
+    send_port = recv_port = argv[1];
+    if (argc >= 3)
+        recv_port = argv[2];
     if (argc >= 4)
         bit_rate = atoi(argv[3]);
     if (argc >= 5)
