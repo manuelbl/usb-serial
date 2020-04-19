@@ -156,13 +156,14 @@ int __cdecl main(int argc, char* argv[]) {
 
 
 int check_usage(int argc, LPWSTR* argv) {
-    if (argc < 3 || argc > 5) {
-        fprintf(stderr, "Usage: %ls send_port recv_port [ bit_rate [ num_bytes ] ]", argv[0]);
+    if (argc < 2 || argc > 5) {
+        fprintf(stderr, "Usage: %ls send_port [ recv_port [ bit_rate [ num_bytes ] ] ]", argv[0]);
         return 1;
     }
 
-    send_port = argv[1];
-    recv_port = argv[2];
+    send_port = recv_port = argv[1];
+    if (argc >= 3)
+        recv_port = argv[2];
     if (argc >= 4)
         bit_rate = _wtoi(argv[3]);
     if (argc >= 5)
@@ -211,7 +212,7 @@ void recv() {
     Sleep(100);
 
     while (n < num_bytes && !test_cancelled) {
-        DWORD k;
+        DWORD k = 0;
         BOOL result = ReadFile(recv_hdl, buf, sizeof(buf), &k, NULL);
         if (!result) {
             perror("Read failed");
@@ -243,7 +244,8 @@ int open_ports() {
     if (wcscmp(send_port, recv_port) == 0) {
         recv_hdl = send_hdl;
 
-    }  else {
+    }
+    else {
         recv_hdl = open_com_port(recv_port);
         if (recv_hdl == INVALID_HANDLE_VALUE) {
             CloseHandle(send_hdl);
@@ -299,21 +301,31 @@ HANDLE open_com_port(LPWSTR port)
 
     GetCommState(hComPort, &dcbSerialParams);
 
-    dcbSerialParams.BaudRate = CBR_115200;
+    dcbSerialParams.BaudRate = bit_rate;
     dcbSerialParams.ByteSize = 8;
     dcbSerialParams.StopBits = ONESTOPBIT;
     dcbSerialParams.Parity = NOPARITY;
 
-    SetCommState(hComPort, &dcbSerialParams);
+    BOOL result = SetCommState(hComPort, &dcbSerialParams);
+    if (result == 0) {
+        fprintf(stderr, "Fail to set baud rate (0x%08x)\n", GetLastError());
+        CloseHandle(hComPort);
+        return NULL;
+    }
 
     COMMTIMEOUTS timeouts = { 0 };
-    timeouts.ReadIntervalTimeout = 50;
-    timeouts.ReadTotalTimeoutConstant = 50;
-    timeouts.ReadTotalTimeoutMultiplier = 1;
+    timeouts.ReadIntervalTimeout = 0;
+    timeouts.ReadTotalTimeoutConstant = 0;
+    timeouts.ReadTotalTimeoutMultiplier = 50;
     timeouts.WriteTotalTimeoutConstant = 0;
     timeouts.WriteTotalTimeoutMultiplier = 0;
 
-    SetCommTimeouts(hComPort, &timeouts);
+    result = SetCommTimeouts(hComPort, &timeouts);
+    if (result == 0) {
+        fprintf(stderr, "Fail to set comm timeouts (0x%08x)\n", GetLastError());
+        CloseHandle(hComPort);
+        return NULL;
+    }
 
     return hComPort;
 }
