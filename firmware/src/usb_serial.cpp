@@ -22,6 +22,8 @@
 
 #define TIMER_FREQ 1000000U // in Hz
 #define POLL_FREQ 5000      // in Hz
+#define RX_DATA_MAX_AGE 15  // in poll frequency ticks
+#define RX_DATA_MAX_LEN 16  // in bytes
 
 static void usb_out_cb(usbd_device *dev, uint8_t ep);
 static void usb_in_cb(usbd_device *dev, uint8_t ep);
@@ -34,6 +36,8 @@ void usb_serial_impl::config()
     is_usb_tx = false;
     is_tx_high_water = false;
     last_serial_state = 0;
+    tick = 0;
+    rx_data_tick = tick - 100;
 
     usbd_ep_setup(usb_device, DATA_OUT_1, USB_ENDPOINT_ATTR_BULK, CDCACM_PACKET_SIZE, usb_out_cb);
     usbd_ep_setup(usb_device, DATA_IN_1, USB_ENDPOINT_ATTR_BULK, CDCACM_PACKET_SIZE, usb_in_cb);
@@ -93,10 +97,17 @@ void usb_serial_impl::poll()
     if (is_usb_tx)
         return; // DATA IN endpoint is busy
 
+    size_t len = uart.rx_data_len();
+    uint32_t age = tick - rx_data_tick;
+    if (age < RX_DATA_MAX_AGE && len < RX_DATA_MAX_LEN)
+        return; // wait for more data to arrive
+
+    rx_data_tick = tick;
+
     uint8_t packet[CDCACM_PACKET_SIZE] __attribute__((aligned(4)));
 
     // Retrieve UART data
-    size_t len = uart.copy_rx_data(packet, CDCACM_PACKET_SIZE);
+    len = uart.copy_rx_data(packet, CDCACM_PACKET_SIZE);
     if (len == 0)
         return; // no new data
 
@@ -198,6 +209,7 @@ void usb_serial_impl::notify_serial_state(uint8_t state)
 extern "C" void tim2_isr()
 {
     timer_clear_flag(TIM2, TIM_SR_UIF);
+    usb_serial.tick++;
     usb_serial.poll();
 }
 
