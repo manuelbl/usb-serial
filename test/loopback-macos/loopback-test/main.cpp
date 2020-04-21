@@ -341,7 +341,7 @@ int open_port(const char* port) {
     set_bits(options.c_lflag, 0);
 
     // Read returns if no character has been received in 10ms
-    options.c_cc[VTIME] = 10;
+    options.c_cc[VTIME] = 1;
     options.c_cc[VMIN]  = 0;
     
     tcsetattr(fd, TCSANOW, &options);

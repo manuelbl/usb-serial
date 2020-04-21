@@ -29,12 +29,15 @@ public:
     void poll();
     void update_nak();
 
+    uint32_t tick;
+
 private:
     void notify_serial_state(uint8_t state);
 
     bool is_usb_tx;
     bool is_tx_high_water;
     uint8_t last_serial_state;
+    uint32_t rx_data_tick;
 };
 
 extern usb_serial_impl usb_serial;
