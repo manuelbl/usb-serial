@@ -80,6 +80,8 @@ static const struct usb_endpoint_descriptor comm_ep_1_desc[] = {
 		.bmAttributes = USB_ENDPOINT_ATTR_INTERRUPT,
 		.wMaxPacketSize = 16,
 		.bInterval = 255,
+		.extra = nullptr,
+		.extralen = 0,
 	}};
 
 static const struct usb_endpoint_descriptor data_ep_1_desc[] = {
@@ -90,6 +92,8 @@ static const struct usb_endpoint_descriptor data_ep_1_desc[] = {
 		.bmAttributes = USB_ENDPOINT_ATTR_BULK,
 		.wMaxPacketSize = CDCACM_PACKET_SIZE,
 		.bInterval = 1,
+		.extra = nullptr,
+		.extralen = 0,
 	},
 	{
 		.bLength = USB_DT_ENDPOINT_SIZE,
@@ -98,6 +102,8 @@ static const struct usb_endpoint_descriptor data_ep_1_desc[] = {
 		.bmAttributes = USB_ENDPOINT_ATTR_BULK,
 		.wMaxPacketSize = CDCACM_PACKET_SIZE,
 		.bInterval = 1,
+		.extra = nullptr,
+		.extralen = 0,
 	}};
 
 static const struct
@@ -163,6 +169,8 @@ static const struct usb_interface_descriptor data_if_1_desc[] = {
 		.bInterfaceProtocol = 0,
 		.iInterface = USB_STRINGS_DATA_1_ID,
 		.endpoint = data_ep_1_desc,
+		.extra = nullptr,
+		.extralen = 0,
 	}};
 
 static const struct usb_iface_assoc_descriptor assoc_1_desc = {

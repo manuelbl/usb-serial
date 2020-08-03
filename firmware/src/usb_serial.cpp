@@ -58,7 +58,7 @@ void usb_serial_impl::config()
     uart.set_dtr(true); // assert DTR
 }
 
-void usb_serial_impl::out_cb(usbd_device *dev, uint8_t ep)
+void usb_serial_impl::out_cb(usbd_device *dev)
 {
     uint8_t packet[CDCACM_PACKET_SIZE] __attribute__((aligned(4)));
 
@@ -74,9 +74,9 @@ void usb_serial_impl::out_cb(usbd_device *dev, uint8_t ep)
 }
 
 // Called when data has arrived via USB
-void usb_out_cb(usbd_device *dev, uint8_t ep)
+void usb_out_cb(usbd_device *dev, __attribute__((unused)) uint8_t ep)
 {
-    usb_serial.out_cb(dev, ep);
+    usb_serial.out_cb(dev);
 }
 
 // Check for data received via UART
@@ -127,16 +127,16 @@ void usb_serial_impl::update_nak()
 }
 
 // Called when transmission over USB has completed
-void usb_serial_impl::in_cb(usbd_device *dev, uint8_t ep)
+void usb_serial_impl::in_cb()
 {
     is_usb_tx = false;
     poll();
 }
 
 // Called when transmission over USB has completed
-void usb_in_cb(usbd_device *dev, uint8_t ep)
+void usb_in_cb(__attribute__((unused)) usbd_device *dev, __attribute__((unused)) uint8_t ep)
 {
-    usb_serial.in_cb(dev, ep);
+    usb_serial.in_cb();
 }
 
 void usb_serial_impl::get_line_coding(struct usb_cdc_line_coding *line_coding)

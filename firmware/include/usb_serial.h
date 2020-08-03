@@ -24,8 +24,8 @@ public:
     uint8_t serial_state();
     void notify_serial_state();
 
-    void out_cb(usbd_device *dev, uint8_t ep);
-    void in_cb(usbd_device *dev, uint8_t ep);
+    void out_cb(usbd_device *dev);
+    void in_cb();
     void poll();
     void update_nak();
 

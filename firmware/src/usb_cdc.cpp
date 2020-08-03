@@ -31,9 +31,9 @@ usbd_device *usb_device;
 static uint16_t configured;
 
 static enum usbd_request_return_codes cdc_control_request(
-	usbd_device *dev,
+	__attribute__((unused)) usbd_device *dev,
 	struct usb_setup_data *req, uint8_t **buf, uint16_t *len,
-	usbd_control_complete_callback *complete)
+	__attribute__((unused)) usbd_control_complete_callback *complete)
 {
 	switch (req->bRequest)
 	{
