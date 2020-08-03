@@ -14,7 +14,7 @@ These instructions assume that PlatformIO is installed as an extension of *Visua
 
 ### 2. Add board definitions
 
-Add the board definitions `genericSTM32F042F6.json` and `nucleo_f042k6_ex.json` (from the [support](../support) directory) to `boards` directory of the PlatformIO installation (`.platformio/boards` in your home directory). You might need to create the `boards` directory if it doesn't exist yet.
+Add the board definition `genericSTM32F042F6.json` (from the [support](../support) directory) to `boards` directory of the PlatformIO installation (`.platformio/boards` in your home directory). You might need to create the `boards` directory if it doesn't exist yet.
 
 
 ### 3. Copy OpenOCD configuration
