@@ -14,7 +14,7 @@ These instructions assume that PlatformIO is installed as an extension of *Visua
 
 ### 2. Add board definitions
 
-Add the board definitions `genericSTM32F042F6.json` and `nucleo_f042k6_ex.json` in the [support](../support) directory to `boards` directory of the PlatformIO installation (`.platformio` in your home directory). You might need to create the `boards` directory if it doesn't exist yet.
+Add the board definitions `genericSTM32F042F6.json` and `nucleo_f042k6_ex.json` (from the [support](../support) directory) to `boards` directory of the PlatformIO installation (`.platformio/boards` in your home directory). You might need to create the `boards` directory if it doesn't exist yet.
 
 
 ### 3. Copy OpenOCD configuration
@@ -22,28 +22,7 @@ Add the board definitions `genericSTM32F042F6.json` and `nucleo_f042k6_ex.json` 
 Copy the OpenOCD configuration `stm32f042f6_stlink.cfg` in the [support](../support) directory to `~\.platformio\packages\tool-openocd\scripts\board`.
 
 
-### 4. Modify file `libopencm3.py`
-
-Apply the below changes to `libopencm3.py` in `~\.platformio\platforms\ststm32\builder\frameworks\libopencm3`:
-
-At line 124, insert:
-
-```
-    incre = re.compile(r"^INCLUDE\s+\"?([^\.]+\.ld)\"?", re.M)
-```
-
-At about line 133, replace:
-
-```
-                return fp.read()
-```
-with:
-```
-                return incre.sub(r'_INCLUDE_ \1', fp.read())
-```
-
-
-### 5. Build
+### 4. Build
 
 Either from within Visual Studio Code (click *Build* icon in status bar or click the *Build* in project task in the *PLATFORMIO* view) or from a shell:
 ```
