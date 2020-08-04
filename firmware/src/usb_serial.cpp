@@ -22,25 +22,26 @@
 
 #define TIMER_FREQ 1000000U // in Hz
 #define POLL_FREQ 5000      // in Hz
-#define RX_DATA_MAX_AGE 15  // in poll frequency ticks
-#define RX_DATA_MAX_LEN 16  // in bytes
+#define TX_HOLDBACK_MAX_TICKS 15  // max time to hold back data for transmission (in ticks)
+#define TX_HOLDBACK_MAX_LEN 16  // max number of bytes to hold back data for transmission
 
-static void usb_out_cb(usbd_device *dev, uint8_t ep);
-static void usb_in_cb(usbd_device *dev, uint8_t ep);
+static void usb_data_out_cb(usbd_device *dev, uint8_t ep);
+static void usb_data_in_cb(usbd_device *dev, uint8_t ep);
 
 usb_serial_impl usb_serial;
 
 // Called when USB is connected
-void usb_serial_impl::config()
+void usb_serial_impl::on_usb_configured()
 {
-    is_usb_tx = false;
+    is_usb_transmitting = false;
     is_tx_high_water = false;
     last_serial_state = 0;
     tick = 0;
-    rx_data_tick = tick - 100;
+    tx_timestamp = tick - 100;
 
-    usbd_ep_setup(usb_device, DATA_OUT_1, USB_ENDPOINT_ATTR_BULK, CDCACM_PACKET_SIZE, usb_out_cb);
-    usbd_ep_setup(usb_device, DATA_IN_1, USB_ENDPOINT_ATTR_BULK, CDCACM_PACKET_SIZE, usb_in_cb);
+    // register callbacks
+    usbd_ep_setup(usb_device, DATA_OUT_1, USB_ENDPOINT_ATTR_BULK, CDCACM_PACKET_SIZE, usb_data_out_cb);
+    usbd_ep_setup(usb_device, DATA_IN_1, USB_ENDPOINT_ATTR_BULK, CDCACM_PACKET_SIZE, usb_data_in_cb);
     usbd_ep_setup(usb_device, COMM_IN_1, USB_ENDPOINT_ATTR_INTERRUPT, 16, nullptr);
 
     // configure timer for polling uart RX
@@ -55,10 +56,11 @@ void usb_serial_impl::config()
     timer_enable_counter(TIM2);
     timer_enable_irq(TIM2, TIM_DIER_UIE);
 
-    uart.set_dtr(true); // assert DTR
+    // assert DTR
+    uart.set_dtr(true);
 }
 
-void usb_serial_impl::out_cb(usbd_device *dev)
+void usb_serial_impl::on_usb_data_received(usbd_device *dev)
 {
     uint8_t packet[CDCACM_PACKET_SIZE] __attribute__((aligned(4)));
 
@@ -74,9 +76,9 @@ void usb_serial_impl::out_cb(usbd_device *dev)
 }
 
 // Called when data has arrived via USB
-void usb_out_cb(usbd_device *dev, __attribute__((unused)) uint8_t ep)
+void usb_data_out_cb(usbd_device *dev, __attribute__((unused)) uint8_t ep)
 {
-    usb_serial.out_cb(dev);
+    usb_serial.on_usb_data_received(dev);
 }
 
 // Check for data received via UART
@@ -94,15 +96,20 @@ void usb_serial_impl::poll()
         notify_serial_state(state);
     }
 
-    if (is_usb_tx)
+    if (is_usb_transmitting)
         return; // DATA IN endpoint is busy
 
+    // In order to prevent the USB line from being flooded with packets
+    // to transmit a single byte, data is held back until a certain time
+    // has expired or a certain number of bytes has been reached.
+    // After a pause with no transmission, the next byte (or chunk of bytes)
+    // is immediately transmitted.
     size_t len = uart.rx_data_len();
-    uint32_t age = tick - rx_data_tick;
-    if (age < RX_DATA_MAX_AGE && len < RX_DATA_MAX_LEN)
+    uint32_t age = tick - tx_timestamp;
+    if (age < TX_HOLDBACK_MAX_TICKS && len < TX_HOLDBACK_MAX_LEN)
         return; // wait for more data to arrive
 
-    rx_data_tick = tick;
+    tx_timestamp = tick;
 
     uint8_t packet[CDCACM_PACKET_SIZE] __attribute__((aligned(4)));
 
@@ -113,7 +120,7 @@ void usb_serial_impl::poll()
 
     // Start transmission over USB
     usbd_ep_write_packet(usb_device, DATA_IN_1, packet, len);
-    is_usb_tx = true;
+    is_usb_transmitting = true;
 }
 
 // Updates the NAK status of DATA_OUT_1
@@ -127,16 +134,16 @@ void usb_serial_impl::update_nak()
 }
 
 // Called when transmission over USB has completed
-void usb_serial_impl::in_cb()
+void usb_serial_impl::on_usb_data_transmitted()
 {
-    is_usb_tx = false;
+    is_usb_transmitting = false;
     poll();
 }
 
 // Called when transmission over USB has completed
-void usb_in_cb(__attribute__((unused)) usbd_device *dev, __attribute__((unused)) uint8_t ep)
+void usb_data_in_cb(__attribute__((unused)) usbd_device *dev, __attribute__((unused)) uint8_t ep)
 {
-    usb_serial.in_cb();
+    usb_serial.on_usb_data_transmitted();
 }
 
 void usb_serial_impl::get_line_coding(struct usb_cdc_line_coding *line_coding)
@@ -187,7 +194,7 @@ uint8_t usb_serial_impl::serial_state()
     return status;
 }
 
-void usb_serial_impl::notify_serial_state()
+void usb_serial_impl::send_serial_state()
 {
     notify_serial_state(serial_state());
 }
@@ -231,8 +238,10 @@ extern "C" void dma1_channel4_7_dma2_channel3_5_isr()
 // Interrupt handler called when USART TX DMA has completed an action
 extern "C" void dma1_channel7_isr()
 {
-    if (dma_get_interrupt_flag(USART_DMA, USART_DMA_TX_CHAN, DMA_TCIF))
+    if (dma_get_interrupt_flag(USART_DMA, USART_DMA_TX_CHAN, DMA_TCIF)) {
         uart.on_tx_complete();
+        usb_serial.update_nak();
+    }
 }
 
 #endif

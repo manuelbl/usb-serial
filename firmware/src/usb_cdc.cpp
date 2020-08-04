@@ -75,7 +75,7 @@ static void cdc_set_config(usbd_device *dev, uint16_t wValue)
 	configured = wValue;
 
 	// Serial interface
-	usb_serial.config();
+	usb_serial.on_usb_configured();
 
 	usbd_register_control_callback(dev,
 								   USB_REQ_TYPE_CLASS | USB_REQ_TYPE_INTERFACE,
@@ -84,7 +84,7 @@ static void cdc_set_config(usbd_device *dev, uint16_t wValue)
 
 	// Send initial serial state.
 	// Allows the use of /dev/tty* devices on *BSD/MacOS
-	usb_serial.notify_serial_state();
+	usb_serial.send_serial_state();
 }
 
 void usb_cdc_init()

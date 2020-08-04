@@ -19,6 +19,5 @@ extern usbd_device *usb_device;
 
 void usb_cdc_init();
 uint16_t usb_cdc_get_config();
-int usb_cdc_get_dtr();
 
 #endif

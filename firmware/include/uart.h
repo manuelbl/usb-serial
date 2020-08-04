@@ -41,6 +41,9 @@ enum class uart_parity
 };
 
 
+/**
+ * @brief UART implementation
+ */
 class uart_impl
 {
 public:
@@ -203,6 +206,7 @@ private:
     volatile uart_state tx_state;
 };
 
+/// Global UART instance
 extern uart_impl uart;
 
 #endif
