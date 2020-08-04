@@ -13,11 +13,6 @@
 
 static volatile uint32_t millis_count;
 
-extern "C" void sys_tick_handler()
-{
-	millis_count++;
-}
-
 uint32_t millis()
 {
 	return millis_count;
@@ -39,6 +34,8 @@ bool has_expired(uint32_t timeout)
 
 void common_init()
 {
+	// Initialize SysTick
+
 #if defined(STM32F0)
 
 	rcc_clock_setup_in_hsi_out_48mhz();
@@ -61,3 +58,10 @@ void common_init()
 	systick_interrupt_enable();
 	systick_counter_enable();
 }
+
+// System tick timer interrupt handler
+extern "C" void sys_tick_handler()
+{
+	millis_count++;
+}
+

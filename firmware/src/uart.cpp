@@ -16,7 +16,6 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/usart.h>
-#include <algorithm>
 #include <string.h>
 
 uart_impl uart;
@@ -98,7 +97,7 @@ void uart_impl::init()
 #endif
 
     // configure baud rate etc.
-    set_coding(9600, 8, uart_stopbits::bits_1_0, uart_parity::no_parity);
+    set_coding(9600, 8, uart_stopbits::_1_0, uart_parity::none);
     usart_set_mode(USART, USART_MODE_TX_RX);
     usart_set_flow_control(USART, USART_FLOWCONTROL_CTS);
     usart_enable(USART);
@@ -140,27 +139,33 @@ void uart_impl::init()
 
 void uart_impl::transmit(const uint8_t *data, size_t len)
 {
-    int buf_tail = tx_buf_tail;
-    int buf_head = tx_buf_head;
+    size_t size;
+    
+    {
+        irq_guard guard;
 
-    size_t avail_chunk_size;
-    if (buf_head < buf_tail)
-        avail_chunk_size = buf_tail - buf_head - 1;
-    else if (buf_tail != 0)
-        avail_chunk_size = UART_TX_BUF_LEN - buf_head;
-    else
-        avail_chunk_size = UART_TX_BUF_LEN - 1 - buf_head;
+        int buf_tail = tx_buf_tail;
+        int buf_head = tx_buf_head;
 
-    if (avail_chunk_size == 0)
-        return; // buffer full - discard data
+        size_t avail_chunk_size;
+        if (buf_head < buf_tail)
+            avail_chunk_size = buf_tail - buf_head - 1;
+        else if (buf_tail != 0)
+            avail_chunk_size = UART_TX_BUF_LEN - buf_head;
+        else
+            avail_chunk_size = UART_TX_BUF_LEN - 1 - buf_head;
 
-    // Copy data to transmit buffer
-    size_t size = std::min(len, avail_chunk_size);
-    memcpy(tx_buf + buf_head, data, size);
-    buf_head += size;
-    if (buf_head >= UART_TX_BUF_LEN)
-        buf_head = 0;
-    tx_buf_head = buf_head;
+        if (avail_chunk_size == 0)
+            return; // buffer full - discard data
+
+        // Copy data to transmit buffer
+        size = std::min(len, avail_chunk_size);
+        memcpy(tx_buf + buf_head, data, size);
+        buf_head += size;
+        if (buf_head >= UART_TX_BUF_LEN)
+            buf_head = 0;
+        tx_buf_head = buf_head;
+    }
 
     // start transmission
     start_transmit();
@@ -190,11 +195,11 @@ void uart_impl::start_transmit()
         if (tx_size > 32)
             tx_size = 32; // no more than 32 bytes to free up space soon
         tx_state = uart_state::transmitting;
-    }
 
-    // set transmit chunk
-    dma_set_memory_address(USART_DMA, USART_DMA_TX_CHAN, (uint32_t)(tx_buf + start_pos));
-    dma_set_number_of_data(USART_DMA, USART_DMA_TX_CHAN, tx_size);
+        // set transmit chunk
+        dma_set_memory_address(USART_DMA, USART_DMA_TX_CHAN, (uint32_t)(tx_buf + start_pos));
+        dma_set_number_of_data(USART_DMA, USART_DMA_TX_CHAN, tx_size);
+    }
 
     // start transmission
     dma_enable_channel(USART_DMA, USART_DMA_TX_CHAN);
@@ -362,10 +367,11 @@ void uart_impl::set_coding(int baudrate, int databits, uart_stopbits stopbits, u
     _databits = databits;
     _stopbits = stopbits;
     _parity = parity;
+    int p = parity == uart_parity::none ? 0 : 1;
 
     // TODO: disable USART for change of baud rate
     usart_set_baudrate(USART, _baudrate);
-    usart_set_databits(USART, _databits);
+    usart_set_databits(USART, _databits + p);
     usart_set_stopbits(USART, stopbits_enum_to_uint32[(int)_stopbits]);
     usart_set_parity(USART, parity_enum_to_uint32[(int)_parity]);
 

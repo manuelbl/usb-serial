@@ -27,17 +27,17 @@ enum class uart_state
 
 enum class uart_stopbits
 {
-    bits_1_0 = 0,
-    bits_1_5 = 1,
-    bits_2_0 = 2,
+    _1_0 = 0,
+    _1_5 = 1,
+    _2_0 = 2,
 };
 
 
 enum class uart_parity
 {
-    no_parity = 0,
-    odd_parity = 1,
-    even_parity = 2,
+    none = 0,
+    odd = 1,
+    even = 2,
 };
 
 
@@ -48,7 +48,7 @@ public:
     void init();
 
     /**
-     * Submits the specified data for transmission.
+     * @brief Submits the specified data for transmission.
      * 
      * The specified data is added to the transmission
      * buffer and transmitted asynchronously.
@@ -59,7 +59,7 @@ public:
     void transmit(const uint8_t *data, size_t len);
 
     /**
-     * Copy data from the receive buffer in the specified array.
+     * @brief Copies data from the receive buffer into the specified array.
      * 
      * The copied data is removed from the buffer.
      * 
@@ -69,10 +69,18 @@ public:
      */
     size_t copy_rx_data(uint8_t *data, size_t len);
 
-    /// Returns the number of bytes in the receive buffer
+    /**
+     * @brief Returns the length of received data in the receive buffer
+     * 
+     * @return length, in number of bytes
+     */
     size_t rx_data_len();
 
-    /// Returns the number of bytes left in the transmission buffer
+    /**
+     * @brief Returns the available space in the transmit buffer
+     * 
+     * @return space, in number of bytes
+     */
     size_t tx_data_avail();
 
     /// Called when a chunk of data has been transmitted
@@ -81,17 +89,73 @@ public:
     /// Update (turn on/off) the RX/TX LEDs if needed
     void update_leds();
 
-    /// Update the state of the RTS signal
+    /**
+     * @brief Updates RTS (output signal)
+     * 
+     * The output signal is asserted if the receive buffer has room for more data
+     * (is below the high-water mark) and `ready` is `true`.
+     * 
+     * @param ready `true` if USB connection is ready, `false` otherwise.
+     */
     void update_rts(bool ready);
 
+    /**
+     * @brief Sets DTR (output signal)
+     * 
+     * @param asserted `true` if asserted, `false` if not asserted
+     */
     void set_dtr(bool asserted);
+
+    /**
+     * @brief Returns if DSR (input signal) is asserted
+     *
+     * @return `true` if asserted, `false` otherwise
+     */
     bool dsr();
+
+    /**
+     * @brief Returns if DCD (input signal) is asserted
+     *
+     * @return `true` if asserted, `false` otherwise
+     */
     bool dcd();
 
+    /**
+     * @brief Sets the line coding.
+     * 
+     * @param baudrate baud rate, in bps
+     * @param databits data bits per byte
+     * @param stopbits length of stop period, in bits
+     * @param parity type of party bit
+     */ 
     void set_coding(int baudrate, int databits, uart_stopbits stopbits, uart_parity parity);
+
+    /**
+     * @brief Gets the baud rate.
+     * 
+     * @return baud rate, in bps
+     */
     int baudrate() { return _baudrate; }
+
+    /**
+     * @brief Gets the data bits per byte.
+     * 
+     * @return number of bits
+     */
     int databits() { return _databits; }
+
+    /**
+     * @brief Gets the length of the stop period
+     * 
+     * @return length, in bits
+     */
     uart_stopbits stopbits() { return _stopbits; }
+
+    /**
+     * @brief Gets the type of parity bit
+     * 
+     * @return parity type
+     */
     uart_parity parity() { return _parity; }
 
 private:

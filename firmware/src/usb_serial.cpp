@@ -150,16 +150,20 @@ void usb_serial_impl::get_line_coding(struct usb_cdc_line_coding *line_coding)
 void usb_serial_impl::set_line_coding(struct usb_cdc_line_coding *line_coding)
 {
     // sanitize parameters
-    if (line_coding->dwDTERate < 733)
-        line_coding->dwDTERate = 733;
-    if (line_coding->dwDTERate > 3096774) // 48000000 / 15.5 (minimum divider 16 with rounding)
-        line_coding->dwDTERate = 3096774;
-    if (line_coding->bDataBits != 9)
-        line_coding->bDataBits = 8;
+
+    // 3096774 = 48000000 / 15.5 (minimum divider 16 with rounding)
+    line_coding->dwDTERate = std::clamp(line_coding->dwDTERate, (uint32_t)733, (uint32_t)3096774);
     if (line_coding->bCharFormat > 2)
         line_coding->bCharFormat = 0;
     if (line_coding->bParityType > 2)
         line_coding->bParityType = 0;
+
+    // supported combinations (data + parity bits): 7 + 1, 8 + 0, 8 + 1, 9 + 0
+    if (line_coding->bParityType == 0) {
+        line_coding->bDataBits = std::clamp(line_coding->bDataBits, (uint8_t)8, (uint8_t)9);
+    } else {
+        line_coding->bDataBits = std::clamp(line_coding->bDataBits, (uint8_t)7, (uint8_t)8);
+    }
 
     uart.set_coding(
         line_coding->dwDTERate,

@@ -52,12 +52,15 @@ int main()
 	init_serial_no();
 	usb_cdc_init();
 
+	// This code only takes care of the power LED.
+	// All the magic happens in interrupt handlers.
+		
 	while (1)
 	{
 		if (usb_cdc_get_config() != 0) {
 			// USB configured: turn on power LED
 			gpio_set(LED_POWER_PORT, LED_POWER_PIN);
-			delay(1000);
+			delay(100);
 		} else {
 			// USB not configured yet: blink LED
 			gpio_toggle(LED_POWER_PORT, LED_POWER_PIN);
@@ -70,6 +73,16 @@ int main()
 	return 0;
 }
 
+/**
+ * @brief Gets a repeatable, more or less unique ID string
+ * 
+ * The ID string is derived from the data in the unique device ID
+ * register (device electronic signature).
+ * 
+ * The resulting ID string is 10 characters long.
+ * 
+ * @param serial_no buffer receiving the ID string (at least 11 bytes long)
+ */
 void get_unique_id_as_string(char* serial_no)
 {
     uint32_t id0 = DESIG_UNIQUE_ID0;
