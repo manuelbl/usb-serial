@@ -30,6 +30,7 @@ usbd_device *usb_device;
 
 static uint16_t configured;
 
+// Process ACM requests on control endpoint
 static enum usbd_request_return_codes cdc_control_request(
 	__attribute__((unused)) usbd_device *dev,
 	struct usb_setup_data *req, uint8_t **buf, uint16_t *len,
@@ -65,9 +66,9 @@ static enum usbd_request_return_codes cdc_control_request(
 	return USBD_REQ_NEXT_CALLBACK;
 }
 
-uint16_t usb_cdc_get_config()
+bool is_usb_connected()
 {
-	return configured;
+	return configured != 0;
 }
 
 static void cdc_set_config(usbd_device *dev, uint16_t wValue)
@@ -83,7 +84,7 @@ static void cdc_set_config(usbd_device *dev, uint16_t wValue)
 								   cdc_control_request);
 
 	// Send initial serial state.
-	// Allows the use of /dev/tty* devices on *BSD/MacOS
+	// Allows the use of /dev/tty* devices on macOS and BSD systems
 	usb_serial.send_serial_state();
 }
 
@@ -115,14 +116,18 @@ void usb_cdc_init()
 	gpio_clear(USB_DP_PORT, USB_DP_PIN);
 	delay(80);
 
+	// create USB device
 	usb_device = usb_conf_init();
 
+	// Set callback for config calls
 	usbd_register_set_config_callback(usb_device, cdc_set_config);
 
+	// Enable interrupt
 	nvic_set_priority(USB_NVIC_IRQ, IRQ_PRI_USB);
 	nvic_enable_irq(USB_NVIC_IRQ);
 }
 
+// USB interrupt handler
 extern "C" void USB_ISR()
 {
 	usbd_poll(usb_device);

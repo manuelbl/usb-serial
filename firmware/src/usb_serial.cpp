@@ -84,7 +84,7 @@ void usb_data_out_cb(usbd_device *dev, __attribute__((unused)) uint8_t ep)
 // Check for data received via UART
 void usb_serial_impl::poll()
 {
-    bool usb_connected = usb_cdc_get_config() != 0;
+    bool usb_connected = is_usb_connected();
     uart.update_leds();
     uart.update_rts(usb_connected);
 

@@ -57,12 +57,12 @@ int main()
 		
 	while (1)
 	{
-		if (usb_cdc_get_config() != 0) {
-			// USB configured: turn on power LED
+		if (is_usb_connected()) {
+			// USB connected: turn on power LED
 			gpio_set(LED_POWER_PORT, LED_POWER_PIN);
 			delay(100);
 		} else {
-			// USB not configured yet: blink LED
+			// USB not connected yet: blink LED
 			gpio_toggle(LED_POWER_PORT, LED_POWER_PIN);
 			delay(150);
 			gpio_toggle(LED_POWER_PORT, LED_POWER_PIN);
