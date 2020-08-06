@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="740px" height="200px" viewBox="0 0 740 200" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 52.6 (67491) - http://www.bohemiancoding.com/sketch -->
+    <title>Artboard</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Artboard" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect fill="#FFFFFF" x="0" y="0" width="740" height="200"></rect>
+        <g id="USB-peripheral" transform="translate(100.000000, 40.000000)">
+            <g id="Buffer" transform="translate(20.000000, 40.000000)" stroke="#333333">
+                <rect id="Rectangle" x="0.5" y="0.5" width="119" height="29"></rect>
+                <path d="M20.5,0 L20.5,30" id="Line" stroke-linecap="square"></path>
+                <path d="M40.5,0 L40.5,30" id="Line-2" stroke-linecap="square"></path>
+                <path d="M60,0 L60,30" id="Line-3" stroke-linecap="square"></path>
+                <path d="M80.5,0 L80.5,30" id="Line-4" stroke-linecap="square"></path>
+                <path d="M100.5,0 L100.5,30" id="Line-5" stroke-linecap="square"></path>
+            </g>
+            <g id="Buffer" transform="translate(20.000000, 90.000000)" stroke="#333333">
+                <rect id="Rectangle" x="0.5" y="0.5" width="119" height="29"></rect>
+                <path d="M20.5,0 L20.5,30" id="Line" stroke-linecap="square"></path>
+                <path d="M40.5,0 L40.5,30" id="Line-2" stroke-linecap="square"></path>
+                <path d="M60,0 L60,30" id="Line-3" stroke-linecap="square"></path>
+                <path d="M80.5,0 L80.5,30" id="Line-4" stroke-linecap="square"></path>
+                <path d="M100.5,0 L100.5,30" id="Line-5" stroke-linecap="square"></path>
+            </g>
+            <rect id="Rectangle" stroke="#333333" x="0.5" y="0.5" width="159" height="139"></rect>
+            <text id="PMA-buffers" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
+                <tspan x="48.9130859" y="27">PMA buffers</tspan>
+            </text>
+        </g>
+        <g id="Buffer" transform="translate(360.000000, 80.000000)" stroke="#333333">
+            <rect id="Rectangle" x="0.5" y="0.5" width="119" height="29"></rect>
+            <path d="M20.5,0 L20.5,30" id="Line" stroke-linecap="square"></path>
+            <path d="M40.5,0 L40.5,30" id="Line-2" stroke-linecap="square"></path>
+            <path d="M60,0 L60,30" id="Line-3" stroke-linecap="square"></path>
+            <path d="M80.5,0 L80.5,30" id="Line-4" stroke-linecap="square"></path>
+            <path d="M100.5,0 L100.5,30" id="Line-5" stroke-linecap="square"></path>
+        </g>
+        <g id="Buffer-Copy" transform="translate(360.000000, 130.000000)" stroke="#333333">
+            <rect id="Rectangle" x="0.5" y="0.5" width="119" height="29"></rect>
+            <path d="M20.5,0 L20.5,30" id="Line" stroke-linecap="square"></path>
+            <path d="M40.5,0 L40.5,30" id="Line-2" stroke-linecap="square"></path>
+            <path d="M60,0 L60,30" id="Line-3" stroke-linecap="square"></path>
+            <path d="M80.5,0 L80.5,30" id="Line-4" stroke-linecap="square"></path>
+            <path d="M100.5,0 L100.5,30" id="Line-5" stroke-linecap="square"></path>
+        </g>
+        <text id="USB-peripheral" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
+            <tspan x="141.574219" y="24">USB peripheral</tspan>
+        </text>
+        <text id="UART-peripheral" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
+            <tspan x="578.357422" y="24">UART peripheral</tspan>
+        </text>
+        <g id="UART-peripheral" transform="translate(580.000000, 40.000000)">
+            <text id="Data-register" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
+                <tspan x="28.5537109" y="17">Data</tspan>
+                <tspan x="20.2304688" y="31">register</tspan>
+            </text>
+            <rect id="Rectangle" stroke="#333333" x="0.5" y="0.5" width="79" height="139"></rect>
+            <rect id="Rectangle" stroke="#333333" x="30.5" y="40.5" width="19" height="29"></rect>
+            <rect id="Rectangle" stroke="#333333" x="31.5" y="90.5" width="19" height="29"></rect>
+        </g>
+        <text id="Receive-ring-buffer" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
+            <tspan x="372.583008" y="184">Receive ring buffer</tspan>
+        </text>
+        <text id="USB" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
+            <tspan x="16.1191406" y="124">USB</tspan>
+        </text>
+        <text id="TX" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
+            <tspan x="713.783203" y="100">TX</tspan>
+        </text>
+        <text id="RX" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
+            <tspan x="712.124023" y="150">RX</tspan>
+        </text>
+        <path id="Line-6" d="M356.932493,94 L348.259739,89.1215755 L347.388163,88.6313143 L348.368686,86.8881632 L349.240261,87.3784245 L361.240261,94.1284245 L362.789729,95 L361.240261,95.8715755 L349.240261,102.621576 L348.368686,103.111837 L347.388163,101.368686 L348.259739,100.878424 L356.932493,96 L348.75,96 L240,96 L239,96 L239,94 L240,94 L348.75,94 L356.932493,94 Z" fill="#333333" fill-rule="nonzero"></path>
+        <path id="Line-6" d="M243.059067,146.025527 L251.690868,150.976052 L252.558328,151.47356 L251.563314,153.208479 L250.695854,152.710972 L238.752519,145.86121 L237.210368,144.976753 L238.767045,144.11812 L250.822876,137.46835 L251.698507,136.985369 L252.664469,138.73663 L251.788839,139.219612 L243.075733,144.025596 L251.246004,144.093682 L360.008333,145.000035 L361.008298,145.008368 L360.991632,147.008298 L359.991667,146.999965 L251.229338,146.093613 L243.059067,146.025527 Z" fill="#333333" fill-rule="nonzero"></path>
+        <path id="Line-6-Copy-3" d="M606.932493,94 L598.259739,89.1215755 L597.388163,88.6313143 L598.368686,86.8881632 L599.240261,87.3784245 L611.240261,94.1284245 L612.789729,95 L611.240261,95.8715755 L599.240261,102.621576 L598.368686,103.111837 L597.388163,101.368686 L598.259739,100.878424 L606.932493,96 L598.75,96 L480,96 L479,96 L479,94 L480,94 L598.75,94 L606.932493,94 Z" fill="#333333" fill-rule="nonzero"></path>
+        <path id="Line-6-Copy-3" d="M483.067507,147 L491.740261,151.878424 L492.611837,152.368686 L491.631314,154.111837 L490.759739,153.621576 L478.759739,146.871576 L477.210271,146 L478.759739,145.128424 L490.759739,138.378424 L491.631314,137.888163 L492.611837,139.631314 L491.740261,140.121576 L483.067507,145 L491.25,145 L610,145 L611,145 L611,147 L610,147 L491.25,147 L483.067507,147 Z" fill="#333333" fill-rule="nonzero"></path>
+        <path id="Line-6" d="M695.362245,94 L686.689491,89.1215755 L685.817915,88.6313143 L686.798438,86.8881632 L687.670013,87.3784245 L699.670013,94.1284245 L701.219481,95 L699.670013,95.8715755 L687.670013,102.621576 L686.798438,103.111837 L685.817915,101.368686 L686.689491,100.878424 L695.362245,96 L687.179752,96 L630,96 L629,96 L629,94 L630,94 L687.179752,94 L695.362245,94 Z" fill="#333333" fill-rule="nonzero"></path>
+        <path id="Line-6" d="M634.067507,147 L642.740261,151.878424 L643.611837,152.368686 L642.631314,154.111837 L641.759739,153.621576 L629.759739,146.871576 L628.210271,146 L629.759739,145.128424 L641.759739,138.378424 L642.631314,137.888163 L643.611837,139.631314 L642.740261,140.121576 L634.067507,145 L642.25,145 L700,145 L701,145 L701,147 L700,147 L642.25,147 L634.067507,147 Z" fill="#333333" fill-rule="nonzero"></path>
+        <path id="Line-6-Copy" d="M53.0675066,122 L61.7402612,126.878424 L62.6118368,127.368686 L61.6313143,129.111837 L60.7597388,128.621576 L48.7597388,121.871576 L47.2102711,121 L48.7597388,120.128424 L60.7597388,113.378424 L61.6313143,112.888163 L62.6118368,114.631314 L61.7402612,115.121576 L53.0675066,120 L61.25,120 L88.75,120 L96.9324934,120 L88.2597388,115.121576 L87.3881632,114.631314 L88.3686857,112.888163 L89.2402612,113.378424 L101.240261,120.128424 L102.789729,121 L101.240261,121.871576 L89.2402612,128.621576 L88.3686857,129.111837 L87.3881632,127.368686 L88.2597388,126.878424 L96.9324934,122 L88.75,122 L61.25,122 L53.0675066,122 Z" fill="#333333" fill-rule="nonzero"></path>
+        <text id="DMA" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
+            <tspan x="522.014648" y="90">DMA</tspan>
+        </text>
+        <text id="DMA" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
+            <tspan x="522.014648" y="161">DMA</tspan>
+        </text>
+    </g>
+</svg>
