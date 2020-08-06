@@ -61,6 +61,9 @@
         <text id="Receive-ring-buffer" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
             <tspan x="372.583008" y="184">Receive ring buffer</tspan>
         </text>
+        <text id="Transmit-ring-buffer" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
+            <tspan x="369.351562" y="66">Transmit ring buffer</tspan>
+        </text>
         <text id="USB" font-family="DINAlternate-Bold, DIN Alternate" font-size="12" font-weight="bold" fill="#000000">
             <tspan x="16.1191406" y="124">USB</tspan>
         </text>
