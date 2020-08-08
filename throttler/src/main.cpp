@@ -9,7 +9,7 @@
  * 
  * This firmware passes data received on UART1 RX to UART2 TX and vice versa 
  * (UART2 RX to UART1 TX). At the interface, it works with 115,200 bps.
- * Iinternally, it throttles the speed to 2 bytes/ms (about about 20,000 bps).
+ * Internally, it throttles the speed to 2 bytes/ms (about about 20,000 bps).
  */
 
 #include <libopencmsis/core_cm3.h>
