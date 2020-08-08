@@ -119,18 +119,18 @@ static const struct
 		.bDescriptorSubtype = USB_CDC_TYPE_HEADER,
 		.bcdCDC = 0x0110,
 	},
-	.call_mgmt = {
+	.call_mgmt = { // see chapter 5.3.1 in PSTN120
 		.bFunctionLength = sizeof(struct usb_cdc_call_management_descriptor),
 		.bDescriptorType = CS_INTERFACE,
 		.bDescriptorSubtype = USB_CDC_TYPE_CALL_MANAGEMENT,
-		.bmCapabilities = 0,
+		.bmCapabilities = 0, // no call management
 		.bDataInterface = INTF_DATA,
 	},
-	.acm = {
+	.acm = { // see chapter 5.3.2 in PSTN120
 		.bFunctionLength = sizeof(struct usb_cdc_acm_descriptor),
 		.bDescriptorType = CS_INTERFACE,
 		.bDescriptorSubtype = USB_CDC_TYPE_ACM,
-		.bmCapabilities = 2,
+		.bmCapabilities = 2, // supports Get/SetLineCoding and SetControlLineState requests as well as SerialState notification
 	},
 	.cdc_union = {
 		.bFunctionLength = sizeof(struct usb_cdc_union_descriptor),

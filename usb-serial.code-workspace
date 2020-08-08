@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "hardware"
+		},
+		{
+			"path": "doc"
 		}
 	],
 	"settings": {
