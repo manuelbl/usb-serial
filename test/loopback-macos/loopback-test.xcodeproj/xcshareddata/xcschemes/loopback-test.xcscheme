@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1140"
+   LastUpgradeVersion = "1160"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -52,7 +52,11 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "/dev/cu.usbmodemEA3DSZCHKB1"
+            argument = "--numbytes 500000"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/dev/cu.usbmodemEBCTS4KHKB1"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

@@ -23,6 +23,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		DB01C56F24E70BE1003C0697 /* cxxopts.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = cxxopts.hpp; sourceTree = "<group>"; };
 		DB275E74243E6A6A00E5A668 /* loopback-test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "loopback-test"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB275E77243E6A6A00E5A668 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -58,6 +59,7 @@
 			isa = PBXGroup;
 			children = (
 				DB275E77243E6A6A00E5A668 /* main.cpp */,
+				DB01C56F24E70BE1003C0697 /* cxxopts.hpp */,
 			);
 			path = "loopback-test";
 			sourceTree = "<group>";
@@ -88,7 +90,7 @@
 		DB275E6C243E6A6A00E5A668 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1140;
+				LastUpgradeCheck = 1160;
 				ORGANIZATIONNAME = Codecrete;
 				TargetAttributes = {
 					DB275E73243E6A6A00E5A668 = {
@@ -238,6 +240,7 @@
 		DB275E7C243E6A6A00E5A668 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4H9ZA7X4C4;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -248,6 +251,7 @@
 		DB275E7D243E6A6A00E5A668 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4H9ZA7X4C4;
 				ENABLE_HARDENED_RUNTIME = YES;

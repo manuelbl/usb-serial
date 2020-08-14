@@ -18,6 +18,7 @@
 // Specify the same port for send_port and recv_port for single port configuration.
 //
 
+#include "cxxopts.hpp"
 #include <algorithm>
 #include <fcntl.h>
 #include <locale.h>
@@ -89,12 +90,12 @@ void prng::fill(uint8_t* buf, size_t len) {
 }
 
 
-static const char* send_port;
-static const char* recv_port;
+static std::string send_port;
+static std::string recv_port;
 static int send_fd;
 static int recv_fd;
-static int num_bytes = 300000;
-static int bit_rate = 921600;
+static int num_bytes;
+static int bit_rate;
 static volatile bool test_cancelled = false;
 
 
@@ -104,7 +105,7 @@ static volatile bool test_cancelled = false;
  * @param argv argument array
  * @return 0 on success, other value on error
  */
-static int check_usage(int argc, const char* argv[]);
+static int check_usage(int argc, char* argv[]);
 
 /**
  * Open the serial port(s) specified on the command line
@@ -149,7 +150,7 @@ static void recv();
  * @param argc number of arguments
  * @param argv argument array
  */
-int main(int argc, const char * argv[]) {
+int main(int argc, char * argv[]) {
     setlocale(LC_NUMERIC, "en_US");
 
     if (check_usage(argc, argv) != 0)
@@ -187,29 +188,43 @@ int main(int argc, const char * argv[]) {
 }
 
 
-int check_usage(int argc, const char* argv[]) {
-    if (argc < 2 || argc > 5) {
-        fprintf(stderr, "Usage: %s send_port [ recv_port [ bit_rate [ num_bytes ] ] ]", argv[0]);
-        return 1;
-    }
+int check_usage(int argc, char* argv[]) {
     
-    send_port = recv_port = argv[1];
-    if (argc >= 3)
-        recv_port = argv[2];
-    if (argc >= 4)
-        bit_rate = atoi(argv[3]);
-    if (argc >= 5)
-        num_bytes = atoi(argv[4]);
-        
-    if (bit_rate < 1200 || bit_rate > 99999999) {
-        fprintf(stderr, "Bit rate %d out of range (1200 .. 99,999,999)\n", bit_rate);
-        return 2;
-    }
-    if (num_bytes < 1) {
-        fprintf(stderr, "Number of bytes %d must be a positive number\n", num_bytes);
+    cxxopts::Options options("loopback", "Serial port loopback test");
+
+    options.add_options()
+        ("b,bitrate", "Bit rate (1200 .. 99,999,999 bps)", cxxopts::value<int>()->default_value("921600"))
+        ("n,numbytes", "Number of bytes to transmit", cxxopts::value<int>()->default_value("300000"))
+        ("t,tx-port", "Serial port for transmission", cxxopts::value<std::string>())
+        ("r,rx-port", "Serial port for reception (default: same as tx-port)", cxxopts::value<std::string>())
+        ("h,help", "Show usage");
+    options.positional_help("tx-port [ rx-port ]").show_positional_help();
+    
+    try {
+        options.parse_positional({"tx-port", "rx-port"});
+        auto result = options.parse(argc, argv);
+    
+        if (result.count("help")) {
+          std::cout << options.help() << std::endl;
+          return 2;
+        }
+
+        bit_rate = result["bitrate"].as<int>();
+        bit_rate = std::min(std::max(bit_rate, 1200), 99999999);
+        num_bytes = result["numbytes"].as<int>();
+        num_bytes = std::min(std::max(num_bytes, 1), 1000000000);
+        send_port = result["tx-port"].as<std::string>();
+        if (result.count("rx-port") > 0)
+            recv_port = result["rx-port"].as<std::string>();
+        else
+            recv_port = send_port;
+
+    } catch (const cxxopts::OptionException& e) {
+        std::cerr << argv[0] << ": " << e.what() << std::endl;
+        std::cout << options.help() << std::endl;
         return 3;
     }
-    
+
     return 0;
 }
 
@@ -245,14 +260,14 @@ void recv() {
     while (n < num_bytes && !test_cancelled) {
         ssize_t k = read(recv_fd, buf, sizeof(buf));
         if (k == 0) {
-            fprintf(stderr, "No more data from %s after %ld bytes\n", recv_port, n);
+            std::cerr << "No more data from " << recv_port << " after " << n << " bytes\n" << std::endl;
             test_cancelled = true;
             return;
         }
         
         prandom.fill(expected, k);
         if (memcmp(buf, expected, k) != 0) {
-            fprintf(stderr, "Invalid data at pos %ld\n", n);
+            std::cerr << "Invalid data at pos " << n << std::endl;
             test_cancelled = true;
             return;
         }
@@ -262,15 +277,15 @@ void recv() {
 
 
 int open_ports() {
-    send_fd = open_port(send_port);
+    send_fd = open_port(send_port.c_str());
     if (send_fd == -1)
         return -1;
     
-    if (strcmp(send_port, recv_port) == 0) {
+    if (send_port == recv_port) {
         recv_fd = send_fd;
         
     } else {
-        recv_fd = open_port(recv_port);
+        recv_fd = open_port(recv_port.c_str());
         if (recv_fd == -1) {
             close(send_fd);
             return -1;
@@ -349,7 +364,7 @@ int open_port(const char* port) {
     // Use special call to set custom bit rates
     speed_t speed = bit_rate;
     if (ioctl(fd, IOSSIOSPEED, &speed) == -1) {
-        fprintf(stderr, "Cannot set bit rate to %ld\n", speed);
+        std::cerr << "Cannot set bit rate to " << speed << std::endl;
         close(fd);
         return -1;
     }
