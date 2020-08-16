@@ -47,3 +47,5 @@ An ST-Link adapter can provide sufficient power to the USB-to-Serial adapter for
 - [What you need to know about USB and the STM32 USB peripheral](../doc/usb-facts.md)
 
 - [Firmware Architecture](../doc/firmware.md)
+
+- [Data and Control Signals](../doc/serial-signals.md)

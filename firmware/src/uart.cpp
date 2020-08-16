@@ -161,6 +161,8 @@ void uart_impl::transmit(const uint8_t *data, size_t len)
         // Copy data to transmit buffer
         size = std::min(len, avail_chunk_size);
         memcpy(tx_buf + buf_head, data, size);
+        if (_databits == 7)
+            clear_high_bit(tx_buf + buf_head, size);
         buf_head += size;
         if (buf_head >= UART_TX_BUF_LEN)
             buf_head = 0;
@@ -253,6 +255,8 @@ size_t uart_impl::copy_rx_data(uint8_t *data, size_t len)
         // chunk between tail and end of buffer
         n1 = std::min((int)len, UART_RX_BUF_LEN - rx_buf_tail);
         memcpy(data, rx_buf + rx_buf_tail, n1);
+        if (_databits == 7)
+            clear_high_bit(data, n1);
         rx_buf_tail += n1;
         if (rx_buf_tail >= UART_RX_BUF_LEN)
             rx_buf_tail = 0;
@@ -268,6 +272,8 @@ size_t uart_impl::copy_rx_data(uint8_t *data, size_t len)
         // chunk between tail and head (no wrap around)
         n2 = std::min((int)len, buf_head - rx_buf_tail);
         memcpy(data, rx_buf + rx_buf_tail, n2);
+        if (_databits == 7)
+            clear_high_bit(data, n2);
         rx_buf_tail += n2;
     }
 
@@ -369,12 +375,20 @@ void uart_impl::set_coding(int baudrate, int databits, uart_stopbits stopbits, u
     _parity = parity;
     int p = parity == uart_parity::none ? 0 : 1;
 
-    // TODO: disable USART for change of baud rate
+    usart_disable(USART);
     usart_set_baudrate(USART, _baudrate);
     usart_set_databits(USART, _databits + p);
     usart_set_stopbits(USART, stopbits_enum_to_uint32[(int)_stopbits]);
     usart_set_parity(USART, parity_enum_to_uint32[(int)_parity]);
+    usart_enable(USART);
 
     // High water mark is buffer size - 5ms worth of data
     rx_high_water_mark = std::max(UART_RX_BUF_LEN - baudrate / 2000, 0);
+}
+
+
+void uart_impl::clear_high_bit(uint8_t* buf, int buf_len)
+{
+    for (int i = 0; i < buf_len; i++)
+        buf[i] &= 0x7f;
 }

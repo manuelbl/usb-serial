@@ -52,11 +52,19 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "--numbytes 500000"
+            argument = "--parity"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/dev/cu.usbmodemEBCTS4KHKB1"
+            argument = "--databits 7"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--bitrate 1000000"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/dev/cu.usbmodemEA3DSZCHKB1"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

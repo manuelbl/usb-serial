@@ -45,8 +45,8 @@ static enum usbd_request_return_codes cdc_control_request(
 		if (req->wIndex != 0)
 			return USBD_REQ_NOTSUPP;
 
-		usb_serial.set_line_coding((struct usb_cdc_line_coding *)*buf);
-		return USBD_REQ_HANDLED;
+		return usb_serial.set_line_coding((struct usb_cdc_line_coding *)*buf) ? USBD_REQ_HANDLED : USBD_REQ_NOTSUPP;
+		
 
 	case USB_CDC_REQ_GET_LINE_CODING:
 		if (*len < sizeof(struct usb_cdc_line_coding))

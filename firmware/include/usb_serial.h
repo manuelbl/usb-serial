@@ -40,8 +40,9 @@ public:
      * This member function is called to process a SET_LINE_CODING request.
      * 
      * @param line_coding line coding information, in format defined by USB CDC PSTN standard
+     * @return `true` if successful, `false` if line coding parameters are not supported
      */
-    void set_line_coding(struct usb_cdc_line_coding *line_coding);
+    bool set_line_coding(struct usb_cdc_line_coding *line_coding);
 
     /**
      * @brief Sets the control line state of the global UART instance.

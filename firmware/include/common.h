@@ -65,19 +65,4 @@ public:
     }
 };
 
-#if !defined(__cpp_lib_clamp)
-
-namespace std {
-
-    template <typename _Tp>
-    constexpr const _Tp &
-    clamp(const _Tp &__val, const _Tp &__lo, const _Tp &__hi)
-    {
-        return (__val < __lo) ? __lo : (__hi < __val) ? __hi : __val;
-    }
-
-}
-
-#endif
-
 #endif

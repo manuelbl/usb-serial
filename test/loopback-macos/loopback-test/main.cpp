@@ -96,6 +96,8 @@ static int send_fd;
 static int recv_fd;
 static int num_bytes;
 static int bit_rate;
+static int data_bits;
+static bool with_parity;
 static volatile bool test_cancelled = false;
 
 
@@ -144,6 +146,13 @@ static void* send(void* ignore);
  */
 static void recv();
 
+/**
+ * Clears the high bit of each byte in the buffer.
+ * @param buf buffer to be modified
+ * @param buf_len length of buffer (in bytes)
+ */
+static void clear_high_bit(uint8_t* buf, size_t buf_len);
+
 
 /**
  * Main function
@@ -173,15 +182,16 @@ int main(int argc, char * argv[]) {
     
     double duration = end_time.tv_sec - start_time.tv_sec;
     duration += (end_time.tv_nsec - start_time.tv_nsec) / 1000000000.0;
-    
+        
     close_ports();
 
     if (!test_cancelled) {
+        int br = (int)(num_bytes * data_bits / duration);
+        double expected_net_rate = bit_rate * data_bits / (double)(data_bits + (with_parity ? 1 : 0) + 2);
         printf("Successfully sent %'d bytes in %.1fs\n", num_bytes, duration);
         printf("Gross bit rate: %'d bps\n", bit_rate);
-        int br = (int)(num_bytes * 8 / duration);
         printf("Net bit rate:   %'d bps\n", br);
-        printf("Overhead: %.1f%%\n", bit_rate * 80.0 / br - 100);
+        printf("Overhead: %.1f%%\n", expected_net_rate * 100.0 / br - 100);
     }
     
     return test_cancelled ? 3 : 0;
@@ -193,10 +203,12 @@ int check_usage(int argc, char* argv[]) {
     cxxopts::Options options("loopback", "Serial port loopback test");
 
     options.add_options()
-        ("b,bitrate", "Bit rate (1200 .. 99,999,999 bps)", cxxopts::value<int>()->default_value("921600"))
-        ("n,numbytes", "Number of bytes to transmit", cxxopts::value<int>()->default_value("300000"))
         ("t,tx-port", "Serial port for transmission", cxxopts::value<std::string>())
         ("r,rx-port", "Serial port for reception (default: same as tx-port)", cxxopts::value<std::string>())
+        ("n,numbytes", "Number of bytes to transmit", cxxopts::value<int>()->default_value("300000"))
+        ("b,bitrate", "Bit rate (1200 .. 99,999,999 bps)", cxxopts::value<int>()->default_value("921600"))
+        ("p,parity", "Enable parity bit")
+        ("d,databits", "Data bits (7 or 8)", cxxopts::value<int>()->default_value("8"))
         ("h,help", "Show usage");
     options.positional_help("tx-port [ rx-port ]").show_positional_help();
     
@@ -213,7 +225,13 @@ int check_usage(int argc, char* argv[]) {
         bit_rate = std::min(std::max(bit_rate, 1200), 99999999);
         num_bytes = result["numbytes"].as<int>();
         num_bytes = std::min(std::max(num_bytes, 1), 1000000000);
+        data_bits = result["databits"].as<int>();
         send_port = result["tx-port"].as<std::string>();
+        with_parity = result.count("parity") > 0;
+        if (with_parity)
+            data_bits = std::min(std::max(data_bits, 7), 8);
+        else
+            data_bits = 8;
         if (result.count("rx-port") > 0)
             recv_port = result["rx-port"].as<std::string>();
         else
@@ -237,6 +255,8 @@ void* send(void* ignore) {
     while (n > 0 && !test_cancelled) {
         size_t m = std::min(sizeof(buf), n);
         prandom.fill(buf, m);
+        if (data_bits == 7)
+            clear_high_bit(buf, m);
         size_t k = write(send_fd, buf, m);
         if (k != m) {
             perror("Write failed");
@@ -266,6 +286,8 @@ void recv() {
         }
         
         prandom.fill(expected, k);
+        if (data_bits == 7)
+            clear_high_bit(expected, k);
         if (memcmp(buf, expected, k) != 0) {
             std::cerr << "Invalid data at pos " << n << std::endl;
             test_cancelled = true;
@@ -351,9 +373,13 @@ int open_port(const char* port) {
     clear_bits(options.c_oflag, OPOST | ONLCR | OCRNL);
     set_bits(options.c_oflag, 0);
     clear_bits(options.c_cflag, PARENB | PARODD | CSTOPB | CSIZE);
-    set_bits(options.c_cflag, CRTSCTS | CLOCAL | CREAD | CS8 );
+    set_bits(options.c_cflag, CRTSCTS | CLOCAL | CREAD);
     clear_bits(options.c_lflag, ICANON | IEXTEN | ISIG | ECHO | ECHOE | ECHONL);
     set_bits(options.c_lflag, 0);
+    
+    set_bits(options.c_cflag, data_bits == 7 ? CS7 : CS8);
+    if (with_parity)
+        set_bits(options.c_cflag, PARENB);
 
     // Read returns if no character has been received in 10ms
     options.c_cc[VTIME] = 1;
@@ -370,4 +396,9 @@ int open_port(const char* port) {
     }
 
     return fd;
+}
+
+void clear_high_bit(uint8_t* buf, size_t buf_len) {
+    for (int i = 0; i < buf_len; i++)
+        buf[i] &= 0x7f;
 }

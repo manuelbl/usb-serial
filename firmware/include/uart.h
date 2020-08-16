@@ -164,6 +164,8 @@ public:
 private:
     void start_transmit();
 
+    static void clear_high_bit(uint8_t* buf, int buf_len);
+
     // Buffer for data to be transmitted via UART
     //  *  0 <= head < buf_len
     //  *  0 <= tail < buf_len
