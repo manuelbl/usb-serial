@@ -80,6 +80,19 @@ public:
     size_t rx_data_len();
 
     /**
+     * @brief Checks if RX buffer has been overrun.
+     * 
+     * If it has been overrun, data is discarded and the error state reset.
+     * 
+     * This functions must be called frequently in order to detect overrun
+     * (more often than: RX buffer size * 10 bit/byte / maximum bit rate / 2)
+     * 
+     * 
+     * @return `true` if overrun occurred, `false` otherwise
+     */
+    bool check_rx_overrun();
+
+    /**
      * @brief Returns the available space in the transmit buffer
      * 
      * @return space, in number of bytes
@@ -192,6 +205,9 @@ private:
     uint8_t rx_buf[UART_RX_BUF_LEN];
     // volatile int rx_buf_head: : managed by circular DMA controller
     volatile int rx_buf_tail;
+
+    // Last measured RX buffer size (to detect overrun)
+    volatile size_t last_rx_size;
 
     int _baudrate;
     int _databits;

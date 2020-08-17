@@ -14,6 +14,19 @@
 #include "usb_cdc.h"
 #include <libopencm3/usb/cdc.h>
 
+
+/**
+ * @brief Interrupts the host is notified about
+ */
+enum class usb_serial_interrupt : uint16_t
+{
+    /// Data overrun (received data has been discarded)
+    data_overrun = 64,
+    /// Parity error
+    parity_error = 32
+};
+
+
 /**
  * @brief USB Serial implementation
  * 
@@ -62,7 +75,7 @@ public:
      * 
      * @return serial state, in format defined by USB CDC PSTN standard
      */
-    uint8_t serial_state();
+    uint16_t serial_state();
 
     /**
      * @brief Sends the serial state to the USB host.
@@ -104,11 +117,26 @@ public:
      */
     void update_nak();
 
+    /**
+     * @brief Notifies the host that an interrupt has occurred.
+     * 
+     * @param interrupt interrupt
+     */
+    void on_interrupt_occurred(usb_serial_interrupt interrupt);
+
+    /**
+     * @brief Called when controlled data has been transmitted or received via USB.
+     * 
+     * Checks if further notifications are pending.
+     */
+    void on_usb_ctrl_completed();
+
+
     // Tick counter is incremented every 0.2ms
     uint32_t tick;
 
 private:
-    void notify_serial_state(uint8_t state);
+    void notify_serial_state(uint16_t state);
 
     // indicates if data is being transmitted over USB
     bool is_usb_transmitting;
@@ -118,10 +146,13 @@ private:
     bool is_tx_high_water;
 
     // Last serial state sent to host
-    uint8_t last_serial_state;
+    uint16_t last_serial_state;
 
     // Timestamp (tick value) of last data transmitted via USB
     uint32_t tx_timestamp;
+
+    // Interrupt the host needs to be notified about
+    uint16_t pending_interrupt;
 };
 
 /// Global USB Serial instance

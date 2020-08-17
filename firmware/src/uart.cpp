@@ -244,6 +244,8 @@ void uart_impl::on_tx_complete()
 size_t uart_impl::copy_rx_data(uint8_t *data, size_t len)
 {
     int buf_head = UART_RX_BUF_LEN - dma_get_number_of_data(USART_DMA, USART_DMA_RX_CHAN);
+    if (buf_head == UART_RX_BUF_LEN)
+        buf_head = 0;
     if (buf_head == rx_buf_tail)
         return 0; // no new data
 
@@ -252,6 +254,7 @@ size_t uart_impl::copy_rx_data(uint8_t *data, size_t len)
 
     if (rx_buf_tail > buf_head)
     {
+        last_rx_size = UART_RX_BUF_LEN - rx_buf_tail + buf_head;
         // chunk between tail and end of buffer
         n1 = std::min((int)len, UART_RX_BUF_LEN - rx_buf_tail);
         memcpy(data, rx_buf + rx_buf_tail, n1);
@@ -262,6 +265,7 @@ size_t uart_impl::copy_rx_data(uint8_t *data, size_t len)
             rx_buf_tail = 0;
         data += n1;
         len -= n1;
+        last_rx_size -= n1;
     }
 
     if (len == 0)
@@ -269,12 +273,14 @@ size_t uart_impl::copy_rx_data(uint8_t *data, size_t len)
 
     if (rx_buf_tail < buf_head)
     {
+        last_rx_size = buf_head - rx_buf_tail;
         // chunk between tail and head (no wrap around)
         n2 = std::min((int)len, buf_head - rx_buf_tail);
         memcpy(data, rx_buf + rx_buf_tail, n2);
         if (_databits == 7)
             clear_high_bit(data, n2);
         rx_buf_tail += n2;
+        last_rx_size -= n2;
     }
 
     return n1 + n2;
@@ -283,10 +289,26 @@ size_t uart_impl::copy_rx_data(uint8_t *data, size_t len)
 size_t uart_impl::rx_data_len()
 {
     int buf_head = UART_RX_BUF_LEN - dma_get_number_of_data(USART_DMA, USART_DMA_RX_CHAN);
+    if (buf_head == UART_RX_BUF_LEN)
+        buf_head = 0;
     if (buf_head >= rx_buf_tail)
         return buf_head - rx_buf_tail;
 
     return UART_RX_BUF_LEN - rx_buf_tail + buf_head;
+}
+
+bool uart_impl::check_rx_overrun()
+{
+    size_t len = rx_data_len();
+    if (len < last_rx_size) {
+        // overrun detected
+        // clear error condition by discarding data
+        rx_buf_tail = UART_RX_BUF_LEN - dma_get_number_of_data(USART_DMA, USART_DMA_RX_CHAN);
+        last_rx_size = 0;
+        return true;
+    }
+
+    return false;
 }
 
 size_t uart_impl::tx_data_avail() {

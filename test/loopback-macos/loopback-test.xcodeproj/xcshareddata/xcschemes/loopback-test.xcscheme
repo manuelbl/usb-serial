@@ -56,7 +56,7 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--databits 7"
+            argument = "--databits 8"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

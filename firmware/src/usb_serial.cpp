@@ -27,6 +27,7 @@
 
 static void usb_data_out_cb(usbd_device *dev, uint8_t ep);
 static void usb_data_in_cb(usbd_device *dev, uint8_t ep);
+static void usb_comm_in_cb(usbd_device *dev, uint8_t ep);
 
 usb_serial_impl usb_serial;
 
@@ -38,11 +39,12 @@ void usb_serial_impl::on_usb_configured()
     last_serial_state = 0;
     tick = 0;
     tx_timestamp = tick - 100;
+    pending_interrupt = 0;
 
     // register callbacks
     usbd_ep_setup(usb_device, DATA_OUT_1, USB_ENDPOINT_ATTR_BULK, CDCACM_PACKET_SIZE, usb_data_out_cb);
     usbd_ep_setup(usb_device, DATA_IN_1, USB_ENDPOINT_ATTR_BULK, CDCACM_PACKET_SIZE, usb_data_in_cb);
-    usbd_ep_setup(usb_device, COMM_IN_1, USB_ENDPOINT_ATTR_INTERRUPT, 16, nullptr);
+    usbd_ep_setup(usb_device, COMM_IN_1, USB_ENDPOINT_ATTR_INTERRUPT, 16, usb_comm_in_cb);
 
     // configure timer for polling uart RX
     rcc_periph_clock_enable(RCC_TIM2);
@@ -91,17 +93,22 @@ void usb_serial_impl::poll()
     if (!usb_connected)
         return;
 
-    uint8_t state = serial_state();
-    if (state != last_serial_state) {
-        notify_serial_state(state);
+    // Check for RX buffer overrun
+    if (uart.check_rx_overrun()) {
+        on_interrupt_occurred(usb_serial_interrupt::data_overrun);
+        return;
     }
+
+    uint16_t state = serial_state();
+    if (state != last_serial_state)
+        notify_serial_state(state);
 
     if (is_usb_transmitting)
         return; // DATA IN endpoint is busy
 
     // In order to prevent the USB line from being flooded with packets
     // to transmit a single byte, data is held back until a certain time
-    // has expired or a certain number of bytes has been reached.
+    // has expired or a certain number of bytes has been accumulated.
     // After a pause with no transmission, the next byte (or chunk of bytes)
     // is immediately transmitted.
     size_t len = uart.rx_data_len();
@@ -192,9 +199,9 @@ void usb_serial_impl::set_control_line_state(uint16_t state)
     uart.set_dtr((state & 1) != 0);
 }
 
-uint8_t usb_serial_impl::serial_state()
+uint16_t usb_serial_impl::serial_state()
 {
-    uint8_t status = 0;
+    uint16_t status = (uint16_t)pending_interrupt;
     if (uart.dcd()) status |= 1;
     if (uart.dsr()) status |= 2;
     return status;
@@ -205,7 +212,7 @@ void usb_serial_impl::send_serial_state()
     notify_serial_state(serial_state());
 }
 
-void usb_serial_impl::notify_serial_state(uint8_t state)
+void usb_serial_impl::notify_serial_state(uint16_t state)
 {
 	char buf[10];
 	struct usb_cdc_notification *notif = (struct usb_cdc_notification *)buf;
@@ -216,9 +223,31 @@ void usb_serial_impl::notify_serial_state(uint8_t state)
 	notif->wLength = 2;
 	buf[8] = state;
 	buf[9] = 0;
-	if (usbd_ep_write_packet(usb_device, COMM_IN_1, buf, 10) == 10)
-        last_serial_state = state;
+	if (usbd_ep_write_packet(usb_device, COMM_IN_1, buf, 10) == 10) {
+        last_serial_state = state & 0x3;
+        pending_interrupt = 0;
+    }
 }
+
+void usb_serial_impl::on_interrupt_occurred(usb_serial_interrupt interrupt)
+{
+    pending_interrupt |= (uint16_t)interrupt;
+    send_serial_state();
+}
+
+void usb_serial_impl::on_usb_ctrl_completed()
+{
+    uint16_t state = serial_state();
+    if (state != last_serial_state)
+        notify_serial_state(state);
+}
+
+// Called when control data has been received or transmitted via USB
+void usb_comm_in_cb(__attribute__((unused)) usbd_device *dev, __attribute__((unused)) uint8_t ep)
+{
+    usb_serial.on_usb_ctrl_completed();
+}
+
 
 
 
