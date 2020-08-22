@@ -13,9 +13,9 @@
 // - Single port: TX is expected to be wired to RX
 // - Two ports: TX of the first serial port is expected to be wired to RX of the second one.
 //
-// Comand line syntax: loopback-test send_port recv_port [ bit_rate [ num_bytes ]
+// Comand line syntax: loopback-test [ OPTIONS... ] tx-port [ rx-port ]
 //
-// Specify the same port for send_port and recv_port for single port configuration.
+// Specify the same port for tx-port and rx-port for single port configuration.
 //
 
 #include "cxxopts.hpp"
@@ -98,6 +98,7 @@ static int num_bytes;
 static int bit_rate;
 static int data_bits;
 static bool with_parity;
+static int rx_delay;
 static volatile bool test_cancelled = false;
 
 
@@ -172,6 +173,9 @@ int main(int argc, char * argv[]) {
     pthread_t t;
     pthread_create(&t, NULL, send, NULL);
     
+    if (rx_delay != 0)
+        sleep(rx_delay);
+    
     struct timespec start_time;
     clock_gettime(CLOCK_MONOTONIC, &start_time);
 
@@ -182,7 +186,7 @@ int main(int argc, char * argv[]) {
     
     double duration = end_time.tv_sec - start_time.tv_sec;
     duration += (end_time.tv_nsec - start_time.tv_nsec) / 1000000000.0;
-        
+    
     close_ports();
 
     if (!test_cancelled) {
@@ -209,6 +213,7 @@ int check_usage(int argc, char* argv[]) {
         ("b,bitrate", "Bit rate (1200 .. 99,999,999 bps)", cxxopts::value<int>()->default_value("921600"))
         ("p,parity", "Enable parity bit")
         ("d,databits", "Data bits (7 or 8)", cxxopts::value<int>()->default_value("8"))
+        ("s,rx-sleep", "Sleep before reception (in s)", cxxopts::value<int>()->default_value("0"))
         ("h,help", "Show usage");
     options.positional_help("tx-port [ rx-port ]").show_positional_help();
     
@@ -227,6 +232,7 @@ int check_usage(int argc, char* argv[]) {
         num_bytes = std::min(std::max(num_bytes, 1), 1000000000);
         data_bits = result["databits"].as<int>();
         send_port = result["tx-port"].as<std::string>();
+        rx_delay = result["rx-sleep"].as<int>();
         with_parity = result.count("parity") > 0;
         if (with_parity)
             data_bits = std::min(std::max(data_bits, 7), 8);

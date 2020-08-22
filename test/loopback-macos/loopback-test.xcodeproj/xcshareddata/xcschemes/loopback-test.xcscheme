@@ -53,6 +53,10 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "--parity"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--rx-sleep 20"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
