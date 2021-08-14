@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		DB275E78243E6A6A00E5A668 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DB275E77243E6A6A00E5A668 /* main.cpp */; };
+		DB33FF5B2529D34B004502F6 /* prng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DB33FF5A2529D34B004502F6 /* prng.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -26,6 +27,8 @@
 		DB01C56F24E70BE1003C0697 /* cxxopts.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = cxxopts.hpp; sourceTree = "<group>"; };
 		DB275E74243E6A6A00E5A668 /* loopback-test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "loopback-test"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB275E77243E6A6A00E5A668 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		DB33FF592529D2C7004502F6 /* prng.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = prng.h; sourceTree = "<group>"; };
+		DB33FF5A2529D34B004502F6 /* prng.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = prng.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,6 +63,8 @@
 			children = (
 				DB275E77243E6A6A00E5A668 /* main.cpp */,
 				DB01C56F24E70BE1003C0697 /* cxxopts.hpp */,
+				DB33FF592529D2C7004502F6 /* prng.h */,
+				DB33FF5A2529D34B004502F6 /* prng.cpp */,
 			);
 			path = "loopback-test";
 			sourceTree = "<group>";
@@ -90,7 +95,7 @@
 		DB275E6C243E6A6A00E5A668 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1160;
+				LastUpgradeCheck = 1200;
 				ORGANIZATIONNAME = Codecrete;
 				TargetAttributes = {
 					DB275E73243E6A6A00E5A668 = {
@@ -121,6 +126,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DB33FF5B2529D34B004502F6 /* prng.cpp in Sources */,
 				DB275E78243E6A6A00E5A668 /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -154,6 +160,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -212,6 +219,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;

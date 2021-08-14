@@ -19,6 +19,7 @@
 //
 
 #include "cxxopts.hpp"
+#include "prng.h"
 #include <algorithm>
 #include <fcntl.h>
 #include <locale.h>
@@ -34,60 +35,6 @@
 
 
 #define PRNG_INIT 0x7b
-
-
-/**
- * Pseudo Random Number Generator
- */
-struct prng {
-    /**
-     * Constructs a new instance
-     * @param init initial value
-     */
-    prng(uint32_t init);
-    /**
-     * Returns the next pseudo random value
-     * @return pseudo random value
-     */
-    uint32_t next();
-    /**
-     * Fills the buffer with pseudo random data
-     * @param buf buffer receiving the random data
-     * @param len length of the buffer (in bytes)
-     */
-    void fill(uint8_t* buf, size_t len);
-
-private:
-    uint32_t state;
-    int nbytes;
-    uint32_t bits;
-};
-
-
-prng::prng(uint32_t init) : state(init), nbytes(0), bits(0) { }
-
-
-uint32_t prng::next() {
-    uint32_t x = state;
-    x ^= x << 13;
-    x ^= x >> 17;
-    x ^= x << 5;
-    state = x;
-    return x;
-}
-
-
-void prng::fill(uint8_t* buf, size_t len) {
-    for (size_t i = 0; i < len; i++) {
-        if (nbytes == 0) {
-            bits = next();
-            nbytes = 4;
-        }
-        buf[i] = bits;
-        bits >>= 8;
-        nbytes--;
-    }
-}
 
 
 static std::string send_port;
@@ -154,7 +101,6 @@ static void recv();
  */
 static void clear_high_bit(uint8_t* buf, size_t buf_len);
 
-
 /**
  * Main function
  * @param argc number of arguments
@@ -162,7 +108,7 @@ static void clear_high_bit(uint8_t* buf, size_t buf_len);
  */
 int main(int argc, char * argv[]) {
     setlocale(LC_NUMERIC, "en_US");
-
+    
     if (check_usage(argc, argv) != 0)
         exit(1);
     
