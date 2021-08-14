@@ -10,9 +10,8 @@
 
 #include "common.h"
 #include "hardware.h"
-#include "uart.h"
 #include "usb_conf.h"
-#include "usb_cdc.h"
+#include "usb_serial.h"
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/desig.h>
@@ -48,25 +47,30 @@ int main()
 {
 	common_init();
 	gpio_setup();
-	uart.init();
 	init_serial_no();
-	usb_cdc_init();
+	usb_serial.init();
 
-	// This code only takes care of the power LED.
-	// All the magic happens in interrupt handlers.
-		
+	bool connected = false;
+	uint32_t next_led_toggle = 0;
+
 	while (1)
 	{
-		if (is_usb_connected()) {
-			// USB connected: turn on power LED
-			gpio_set(LED_POWER_PORT, LED_POWER_PIN);
-			delay(100);
-		} else {
-			// USB not connected yet: blink LED
-			gpio_toggle(LED_POWER_PORT, LED_POWER_PIN);
-			delay(150);
-			gpio_toggle(LED_POWER_PORT, LED_POWER_PIN);
-			delay(150);
+		usb_serial.poll();
+
+		if (!connected)
+		{
+			if (usb_serial.is_connected())
+			{
+				// USB has just been connected: turn on power LED for good
+				gpio_set(LED_POWER_PORT, LED_POWER_PIN);
+				connected = true;
+			}
+			else if (has_expired(next_led_toggle))
+			{
+				// USB not yet connected: blink power LED quickly
+				gpio_toggle(LED_POWER_PORT, LED_POWER_PIN);
+				next_led_toggle = millis() + 150;
+			}
 		}
 	}
 

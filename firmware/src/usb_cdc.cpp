@@ -13,7 +13,6 @@
 #include "usb_cdc.h"
 #include "usb_conf.h"
 #include "usb_serial.h"
-#include <libopencm3/cm3/nvic.h>
 #if defined(STM32F0)
 #include <libopencm3/stm32/crs.h>
 #include <libopencm3/stm32/syscfg.h>
@@ -66,7 +65,7 @@ static enum usbd_request_return_codes cdc_control_request(
 	return USBD_REQ_NEXT_CALLBACK;
 }
 
-bool is_usb_connected()
+bool usb_cdc_is_connected()
 {
 	return configured != 0;
 }
@@ -75,13 +74,13 @@ static void cdc_set_config(usbd_device *dev, uint16_t wValue)
 {
 	configured = wValue;
 
-	// Serial interface
-	usb_serial.on_usb_configured();
-
 	usbd_register_control_callback(dev,
 								   USB_REQ_TYPE_CLASS | USB_REQ_TYPE_INTERFACE,
 								   USB_REQ_TYPE_TYPE | USB_REQ_TYPE_RECIPIENT,
 								   cdc_control_request);
+
+	// Serial interface
+	usb_serial.on_usb_configured();
 
 	// Send initial serial state.
 	// Allows the use of /dev/tty* devices on macOS and BSD systems
@@ -121,14 +120,9 @@ void usb_cdc_init()
 
 	// Set callback for config calls
 	usbd_register_set_config_callback(usb_device, cdc_set_config);
-
-	// Enable interrupt
-	nvic_set_priority(USB_NVIC_IRQ, IRQ_PRI_USB);
-	nvic_enable_irq(USB_NVIC_IRQ);
 }
 
-// USB interrupt handler
-extern "C" void USB_ISR()
+void usb_cdc_poll()
 {
 	usbd_poll(usb_device);
 }

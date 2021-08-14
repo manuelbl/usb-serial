@@ -14,15 +14,11 @@
 #include "usb_cdc.h"
 #include "usb_conf.h"
 #include "usb_serial.h"
-#include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/rcc.h>
-#include <libopencm3/stm32/timer.h>
 #include <libopencm3/usb/cdc.h>
 
-#define TIMER_FREQ 1000000U // in Hz
-#define POLL_FREQ 5000      // in Hz
-#define TX_HOLDBACK_MAX_TICKS 15  // max time to hold back data for transmission (in ticks)
+#define TX_HOLDBACK_MAX_TIME 3  // max time to hold back data for transmission (in milliseconds)
 #define TX_HOLDBACK_MAX_LEN 16  // max number of bytes to hold back data for transmission
 
 static void usb_data_out_cb(usbd_device *dev, uint8_t ep);
@@ -31,14 +27,19 @@ static void usb_comm_in_cb(usbd_device *dev, uint8_t ep);
 
 usb_serial_impl usb_serial;
 
+void usb_serial_impl::init()
+{
+    uart.init();
+    usb_cdc_init();
+}
+
 // Called when USB is connected
 void usb_serial_impl::on_usb_configured()
 {
     is_usb_transmitting = false;
     is_tx_high_water = false;
     last_serial_state = 0;
-    tick = 0;
-    tx_timestamp = tick - 100;
+    tx_timestamp = millis() - 100;
     pending_interrupt = 0;
 
     // register callbacks
@@ -46,19 +47,8 @@ void usb_serial_impl::on_usb_configured()
     usbd_ep_setup(usb_device, DATA_IN_1, USB_ENDPOINT_ATTR_BULK, CDCACM_PACKET_SIZE, usb_data_in_cb);
     usbd_ep_setup(usb_device, COMM_IN_1, USB_ENDPOINT_ATTR_INTERRUPT, 16, usb_comm_in_cb);
 
-    // configure timer for polling uart RX
-    rcc_periph_clock_enable(RCC_TIM2);
-    timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
-    timer_set_prescaler(TIM2, (rcc_apb1_frequency * 2) / TIMER_FREQ - 1);
-    timer_set_period(TIM2, TIMER_FREQ / POLL_FREQ - 1);
-
-    nvic_set_priority(NVIC_TIM2_IRQ, IRQ_PRI_UART_TIM);
-    nvic_enable_irq(NVIC_TIM2_IRQ);
-
-    timer_enable_counter(TIM2);
-    timer_enable_irq(TIM2, TIM_DIER_UIE);
-
     // assert DTR
+    uart.enable();
     uart.set_dtr(true);
 }
 
@@ -83,18 +73,25 @@ void usb_data_out_cb(usbd_device *dev, __attribute__((unused)) uint8_t ep)
     usb_serial.on_usb_data_received(dev);
 }
 
+bool usb_serial_impl::is_connected()
+{
+    return usb_cdc_is_connected();
+}
+
 // Check for data received via UART
 void usb_serial_impl::poll()
 {
-    bool usb_connected = is_usb_connected();
-    uart.update_leds();
-    uart.update_rts(usb_connected);
+    usb_cdc_poll();
+    
+    uart.poll();
 
-    if (!usb_connected)
+    if (!usb_cdc_is_connected())
         return;
 
+    update_nak();
+
     // Check for RX buffer overrun
-    if (uart.check_rx_overrun()) {
+    if (uart.has_rx_overrun_occurred()) {
         on_interrupt_occurred(usb_serial_interrupt::data_overrun);
         return;
     }
@@ -112,11 +109,10 @@ void usb_serial_impl::poll()
     // After a pause with no transmission, the next byte (or chunk of bytes)
     // is immediately transmitted.
     size_t len = uart.rx_data_len();
-    uint32_t age = tick - tx_timestamp;
-    if (age < TX_HOLDBACK_MAX_TICKS && len < TX_HOLDBACK_MAX_LEN)
+    if (len < TX_HOLDBACK_MAX_LEN && !has_expired(tx_timestamp + TX_HOLDBACK_MAX_TIME))
         return; // wait for more data to arrive
 
-    tx_timestamp = tick;
+    tx_timestamp = millis();
 
     uint8_t packet[CDCACM_PACKET_SIZE] __attribute__((aligned(4)));
 
@@ -144,7 +140,6 @@ void usb_serial_impl::update_nak()
 void usb_serial_impl::on_usb_data_transmitted()
 {
     is_usb_transmitting = false;
-    poll();
 }
 
 // Called when transmission over USB has completed
@@ -190,7 +185,6 @@ bool usb_serial_impl::set_line_coding(struct usb_cdc_line_coding *line_coding)
         (uart_stopbits)line_coding->bCharFormat,
         (uart_parity)line_coding->bParityType);
     
-    uart.update_rts(true);
     return true;
 }
 
@@ -247,36 +241,3 @@ void usb_comm_in_cb(__attribute__((unused)) usbd_device *dev, __attribute__((unu
 {
     usb_serial.on_usb_ctrl_completed();
 }
-
-
-
-
-// Called every 200µs to check for new UART data
-extern "C" void tim2_isr()
-{
-    timer_clear_flag(TIM2, TIM_SR_UIF);
-    usb_serial.tick++;
-    usb_serial.poll();
-}
-
-#if defined(STM32F0)
-
-// Interrupt handler called when USART DMA has completed an action
-extern "C" void dma1_channel4_7_dma2_channel3_5_isr()
-{
-    uart.on_tx_complete();
-    usb_serial.update_nak();
-}
-
-#elif defined(STM32F1)
-
-// Interrupt handler called when USART TX DMA has completed an action
-extern "C" void dma1_channel7_isr()
-{
-    if (dma_get_interrupt_flag(USART_DMA, USART_DMA_TX_CHAN, DMA_TCIF)) {
-        uart.on_tx_complete();
-        usb_serial.update_nak();
-    }
-}
-
-#endif

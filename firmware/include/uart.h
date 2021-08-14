@@ -17,14 +17,6 @@
 #define UART_TX_BUF_LEN 1024
 #define UART_RX_BUF_LEN 1024
 
-enum class uart_state
-{
-    ready,
-    transmitting,
-    receiving
-};
-
-
 enum class uart_stopbits
 {
     _1_0 = 0,
@@ -47,8 +39,16 @@ enum class uart_parity
 class uart_impl
 {
 public:
-    /// Initialize UART
+    /// Initializes UART.
     void init();
+
+    // Enable the UART
+    void enable();
+
+    /**
+     * Polls for new UART events.
+     */
+    void poll();
 
     /**
      * @brief Submits the specified data for transmission.
@@ -80,17 +80,14 @@ public:
     size_t rx_data_len();
 
     /**
-     * @brief Checks if RX buffer has been overrun.
+     * Indicates of an RX buffer overrun has occurred.
      * 
-     * If it has been overrun, data is discarded and the error state reset.
+     * This function will return `true` once for
+     * each occurrence of an overrun.
      * 
-     * This functions must be called frequently in order to detect overrun
-     * (more often than: RX buffer size * 10 bit/byte / maximum bit rate / 2)
-     * 
-     * 
-     * @return `true` if overrun occurred, `false` otherwise
+     * @return `true` if overrun occurred.
      */
-    bool check_rx_overrun();
+    bool has_rx_overrun_occurred();
 
     /**
      * @brief Returns the available space in the transmit buffer
@@ -98,22 +95,6 @@ public:
      * @return space, in number of bytes
      */
     size_t tx_data_avail();
-
-    /// Called when a chunk of data has been transmitted
-    void on_tx_complete();
-
-    /// Update (turn on/off) the RX/TX LEDs if needed
-    void update_leds();
-
-    /**
-     * @brief Updates RTS (output signal)
-     * 
-     * The output signal is asserted if the receive buffer has room for more data
-     * (is below the high-water mark) and `ready` is `true`.
-     * 
-     * @param ready `true` if USB connection is ready, `false` otherwise.
-     */
-    void update_rts(bool ready);
 
     /**
      * @brief Sets DTR (output signal)
@@ -175,9 +156,39 @@ public:
     uart_parity parity() { return _parity; }
 
 private:
-    void start_transmit();
+    /// Check if a chunk of data has been transmitted
+    void poll_tx_complete();
 
-    static void clear_high_bit(uint8_t* buf, int buf_len);
+    /// Try to transmit more data
+    void start_transmission();
+
+    /**
+     * @brief Checks if RX buffer has been overrun.
+     * 
+     * If it has been overrun, data is discarded and the error state reset.
+     * 
+     * This functions must be called frequently in order to reliably detect an overrun
+     * (more often than: RX buffer size * 10 bit/byte / maximum bit rate / 2)
+     */
+    void check_rx_overrun();
+
+    /// Update (turn on/off) the RX/TX LEDs if needed
+    void update_leds();
+
+    /**
+     * @brief Updates RTS (output signal)
+     * 
+     * The output signal is asserted if the receive buffer has room for more data
+     * (is below the high-water mark).
+     */
+    void update_rts();
+
+    /**
+     * Deletes the high bit of each byte.
+     * 
+     * It is used to support 7 data bits.
+     */
+    static void clear_high_bits(uint8_t* buf, int buf_len);
 
     // Buffer for data to be transmitted via UART
     //  *  0 <= head < buf_len
@@ -188,11 +199,11 @@ private:
     // should be inserted. `tx_buf_tail` points to the character after
     // the last character that has been transmitted.
     uint8_t tx_buf[UART_TX_BUF_LEN];
-    volatile int tx_buf_head;
-    volatile int tx_buf_tail;
+    int tx_buf_head;
+    int tx_buf_tail;
 
     // The number of bytes currently being transmitted
-    volatile int tx_size;
+    int tx_size;
 
     // Buffer of data received via UART
     //  *  0 <= head < buf_len
@@ -203,11 +214,11 @@ private:
     // should be inserted. `rx_buf_tail` points to the character after
     // the last character that has been transmitted.
     uint8_t rx_buf[UART_RX_BUF_LEN];
-    // volatile int rx_buf_head: : managed by circular DMA controller
-    volatile int rx_buf_tail;
+    // int rx_buf_head: : managed by circular DMA controller
+    int rx_buf_tail;
 
     // Last measured RX buffer size (to detect overrun)
-    volatile size_t last_rx_size;
+    size_t last_rx_size;
 
     int _baudrate;
     int _databits;
@@ -221,7 +232,9 @@ private:
     int rx_led_head;
     int rx_high_water_mark;
 
-    volatile uart_state tx_state;
+    bool is_transmitting;
+    bool is_enabled;
+    bool rx_overrun_occurred;
 };
 
 /// Global UART instance

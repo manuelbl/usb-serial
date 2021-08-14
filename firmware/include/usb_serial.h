@@ -35,6 +35,9 @@ enum class usb_serial_interrupt : uint16_t
 class usb_serial_impl
 {
 public:
+    /// Initializes the UART and the USB connection
+    void init();
+
     /// Called when the USB interface is configured
     void on_usb_configured();
 
@@ -131,9 +134,12 @@ public:
      */
     void on_usb_ctrl_completed();
 
-
-    // Tick counter is incremented every 0.2ms
-    uint32_t tick;
+    /**
+     * Indicates if the USB CDC connection if configured.
+     * 
+     * @return `true` if connected
+     */
+    bool is_connected();
 
 private:
     void notify_serial_state(uint16_t state);
@@ -148,7 +154,7 @@ private:
     // Last serial state sent to host
     uint16_t last_serial_state;
 
-    // Timestamp (tick value) of last data transmitted via USB
+    // Timestamp of last data transmitted via USB (in milliseconds)
     uint32_t tx_timestamp;
 
     // Interrupt the host needs to be notified about

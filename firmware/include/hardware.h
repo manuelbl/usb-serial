@@ -19,9 +19,7 @@
 #define USB_DP_PIN GPIO12
 #define USB_PORT_RCC RCC_GPIOA
 
-#define USB_ISR usb_isr
 #define USB_DRIVER st_usbfs_v2_usb_driver
-#define USB_NVIC_IRQ NVIC_USB_IRQ
 
 #elif defined(STM32F1)
 
@@ -29,8 +27,6 @@
 #define USB_DP_PIN GPIO12
 #define USB_PORT_RCC RCC_GPIOA
 
-#define USB_NVIC_IRQ NVIC_USB_LP_CAN_RX0_IRQ
-#define USB_ISR usb_lp_can_rx0_isr
 #define USB_DRIVER st_usbfs_v1_usb_driver
 
 #else
@@ -74,7 +70,6 @@
 #define USART_DMA DMA1
 #define USART_DMA_TX_CHAN 4
 #define USART_DMA_RX_CHAN 5
-#define USART_DMA_NVIC_IRQ NVIC_DMA1_CHANNEL4_7_DMA2_CHANNEL3_5_IRQ
 #define USART_DMA_RCC RCC_DMA
 
 #elif defined(STM32F1)
@@ -82,8 +77,6 @@
 #define USART_DMA DMA1
 #define USART_DMA_TX_CHAN 7
 #define USART_DMA_RX_CHAN 6
-#define USART_DMA_TX_NVIC_IRQ NVIC_DMA1_CHANNEL7_IRQ
-#define USART_DMA_RX_NVIC_IRQ NVIC_DMA1_CHANNEL6_IRQ
 #define USART_DMA_RCC RCC_DMA1
 
 #endif

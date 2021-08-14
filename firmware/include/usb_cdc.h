@@ -22,6 +22,9 @@ extern usbd_device *usb_device;
 /// Initializes the USB CDC device
 void usb_cdc_init();
 
+/// Polls the USB CDC device for new events
+void usb_cdc_poll();
+
 /***
  * @brief Gets if the device is connected to a host
  * 
@@ -31,6 +34,6 @@ void usb_cdc_init();
  * 
  * @return `true` if it is connected, `false, otherwise
  */
-bool is_usb_connected();
+bool usb_cdc_is_connected();
 
 #endif
