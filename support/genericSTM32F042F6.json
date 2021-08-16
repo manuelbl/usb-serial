@@ -18,7 +18,7 @@
       "stlink"
     ],
     "jlink_device": "STM32F042F6",
-    "openocd_board": "stm32f042f6_stlink",
+    "openocd_target": "stm32f0x",
     "svd_path": "STM32F042x.svd"
   },
   "frameworks": [

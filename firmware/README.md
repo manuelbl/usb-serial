@@ -17,12 +17,7 @@ These instructions assume that PlatformIO is installed as an extension of *Visua
 Add the board definition `genericSTM32F042F6.json` (from the [support](../support) directory) to `boards` directory of the PlatformIO installation (`.platformio/boards` in your home directory). You might need to create the `boards` directory if it doesn't exist yet.
 
 
-### 3. Copy OpenOCD configuration
-
-Copy the OpenOCD configuration `stm32f042f6_stlink.cfg` in the [support](../support) directory to `~\.platformio\packages\tool-openocd\scripts\board`.
-
-
-### 4. Build
+### 3. Build
 
 Either from within Visual Studio Code (click *Build* icon in status bar or click the *Build* in project task in the *PLATFORMIO* view) or from a shell:
 ```

@@ -21,9 +21,9 @@ When the DMA transfer is complete, it updates the ring buffer accordingly and if
 
 ### Serial-to-USB path
 
-For UART reception, a permanent circular DMA transfer is set up copying received bytes into the receive ring buffer. A timer calls `usb_serial_impl::poll()` every 200μs. It reads the DMA transfer state to check for additional data that has been copied into the ring buffer.
+For UART reception, a permanent circular DMA transfer is set up copying received bytes into the receive ring buffer. `usb_serial_impl::poll()` is called very frequently from the loop in `main()`. It reads the DMA transfer state (number of bytes copied by DMA) to check for additional data that has been copied into the ring buffer.
 
-If data has arrived and if no outgoing USB operation is in progress, the data is put into the PMA buffers so it is transmitted when the host polls the device the next time. Once the data has been transmitted, the callback `usb_serial_impl::on_usb_data_transmitted()` is called. It again checks for data to be transmitted.
+If data has arrived and if no outgoing USB operation is in progress, the data is put into the PMA buffers so it is transmitted when the host polls the device the next time. Once the data has been transmitted, the callback `usb_serial_impl::on_usb_data_transmitted()` is called.
 
 
 ## Flow control
@@ -42,6 +42,6 @@ For the flow control on the UART side, the hardware flow control is enabled in t
 
 ### Serial-to-USB path
 
-To prevent the sender from transmitting more data via the serial connection when the receive buffer is becoming full, the RTS signal is asserted in software. `usb_serial_impl::poll()` is called once every 200μs. It checks the receive buffer fill level. If it exceeds the high-water mark, RTS is asserted (pulled low).
+To prevent the sender from transmitting more data via the serial connection when the receive buffer is becoming full, the RTS signal is asserted in software in `uart_impl::update_rts()`, which is called frequently from the main loop. It checks the receive buffer fill level. If it exceeds the high-water mark, RTS is asserted (pulled low).
 
 No special flow control is needed on the USB side. The host polls and receives data whenever it is ready. If the host is slow at picking up data, the ring buffer fill level will raise and eventually assert the RTS signal.

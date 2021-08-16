@@ -11,6 +11,9 @@
 		},
 		{
 			"path": "doc"
+		},
+		{
+			"path": "support"
 		}
 	],
 	"settings": {
