@@ -37,6 +37,7 @@ void usb_serial_impl::init()
 void usb_serial_impl::on_usb_configured()
 {
     is_usb_transmitting = false;
+    needs_zlp = false;
     is_tx_high_water = false;
     last_serial_state = 0;
     tx_timestamp = millis() - 100;
@@ -109,7 +110,7 @@ void usb_serial_impl::poll()
     // After a pause with no transmission, the next byte (or chunk of bytes)
     // is immediately transmitted.
     size_t len = uart.rx_data_len();
-    if (len < TX_HOLDBACK_MAX_LEN && !has_expired(tx_timestamp + TX_HOLDBACK_MAX_TIME))
+    if (len < TX_HOLDBACK_MAX_LEN && !has_expired(tx_timestamp + TX_HOLDBACK_MAX_TIME && !needs_zlp))
         return; // wait for more data to arrive
 
     tx_timestamp = millis();
@@ -118,8 +119,10 @@ void usb_serial_impl::poll()
 
     // Retrieve UART data
     len = uart.copy_rx_data(packet, CDCACM_PACKET_SIZE);
-    if (len == 0)
+    if (len == 0 && !needs_zlp)
         return; // no new data
+
+    needs_zlp = len == CDCACM_PACKET_SIZE;
 
     // Start transmission over USB
     usbd_ep_write_packet(usb_device, DATA_IN_1, packet, len);

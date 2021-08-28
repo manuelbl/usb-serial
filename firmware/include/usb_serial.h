@@ -147,6 +147,9 @@ private:
     // indicates if data is being transmitted over USB
     bool is_usb_transmitting;
 
+    // indicates if zero-length packet is needed as previously transmitted packet was equal to maximum packet size
+    bool needs_zlp;
+
     // Indicates if the UART transmit buffer is almost full
     // (used to set USB NAK to prevent receiving more data)
     bool is_tx_high_water;
