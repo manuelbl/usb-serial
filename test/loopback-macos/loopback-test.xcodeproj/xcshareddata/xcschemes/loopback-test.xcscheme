@@ -64,7 +64,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--bitrate 1700000"
+            argument = "--bitrate 2000000"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

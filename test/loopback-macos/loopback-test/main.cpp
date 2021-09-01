@@ -22,6 +22,7 @@
 #include "prng.h"
 #include <algorithm>
 #include <fcntl.h>
+#include <iomanip>
 #include <locale.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -100,6 +101,14 @@ static void recv();
  * @param buf_len length of buffer (in bytes)
  */
 static void clear_high_bit(uint8_t* buf, size_t buf_len);
+
+/**
+ * Prints a hex dump of the specified buffer.
+ * @param title Title to print at start of line
+ * @param buf buffer start
+ * @para buf_len buffer length
+ */
+static void hex_dump(const char* title, const uint8_t* buf, size_t buf_len);
 
 /**
  * Main function
@@ -242,6 +251,8 @@ void recv() {
             clear_high_bit(expected, k);
         if (memcmp(buf, expected, k) != 0) {
             std::cerr << "Invalid data at pos " << n << std::endl;
+            hex_dump("Expected: ", expected, k);
+            hex_dump("Received: ", buf, k);
             test_cancelled = true;
             return;
         }
@@ -294,7 +305,7 @@ void close_ports() {
  * @param flags flags value
  * @param bits bits to set
  */
-static void set_bits(unsigned long& flags, unsigned long bits) {
+static inline void set_bits(unsigned long& flags, unsigned long bits) {
     flags |= bits;
 }
 
@@ -304,7 +315,7 @@ static void set_bits(unsigned long& flags, unsigned long bits) {
  * @param flags flags value
  * @param bits bits to clear
  */
-static void clear_bits(unsigned long& flags, unsigned long bits) {
+static inline void clear_bits(unsigned long& flags, unsigned long bits) {
     flags &= ~bits;
 }
 
@@ -353,4 +364,17 @@ int open_port(const char* port) {
 void clear_high_bit(uint8_t* buf, size_t buf_len) {
     for (int i = 0; i < buf_len; i++)
         buf[i] &= 0x7f;
+}
+
+void hex_dump(const char* title, const uint8_t* buf, size_t buf_len)
+{
+    std::cerr << title;
+    
+    for (size_t i = 0; i < buf_len; i++) {
+        if (i > 0)
+            std::cerr << ' ';
+        std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int)buf[i];
+    }
+    
+    std::cerr << std::endl;
 }
