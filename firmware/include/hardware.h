@@ -11,7 +11,7 @@
 #ifndef HARDWARE_H
 #define HARDWARE_H
 
-// --- USB pins, clocks and ISRs
+// --- USB pins and clocks
 
 #if defined(STM32F0)
 
@@ -35,7 +35,7 @@
 
 #endif
 
-// --- USART pins, clocks and ISRs
+// --- USART pins and clocks
 
 #if defined(STM32F0)
 
@@ -63,7 +63,7 @@
 
 #endif
 
-// --- USART DMA channels and ISRs
+// --- USART DMA channels and clocks
 
 #if defined(STM32F0)
 
@@ -160,6 +160,7 @@
 #define LED_POWER_PORT_RCC RCC_GPIOC
 #define LED_POWER_PORT GPIOC
 #define LED_POWER_PIN GPIO13
+#define LED_POWER_REVERSED
 
 #define LED_RX_PORT_RCC RCC_GPIOA
 #define LED_RX_PORT GPIOA

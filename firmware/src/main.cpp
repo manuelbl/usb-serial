@@ -32,7 +32,11 @@ static void gpio_setup()
 	gpio_set_mode(LED_POWER_PORT, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, LED_POWER_PIN);
 #endif
 
+#if defined(LED_POWER_REVERSED)
+	gpio_clear(LED_POWER_PORT, LED_POWER_PIN);
+#else
 	gpio_set(LED_POWER_PORT, LED_POWER_PIN);
+#endif
 }
 
 void init_serial_no()
@@ -62,7 +66,11 @@ int main()
 			if (usb_serial.is_connected())
 			{
 				// USB has just been connected: turn on power LED for good
+#if defined(LED_POWER_REVERSED)
+				gpio_clear(LED_POWER_PORT, LED_POWER_PIN);
+#else
 				gpio_set(LED_POWER_PORT, LED_POWER_PIN);
+#endif
 				connected = true;
 			}
 			else if (has_expired(next_led_toggle))
