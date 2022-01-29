@@ -131,6 +131,7 @@ void uart_impl::enable()
     usart_set_flow_control(USART, USART_FLOWCONTROL_CTS);
 
     usart_enable_rx_dma(USART);
+    usart_enable_tx_dma(USART);
     usart_enable(USART);
 
     is_enabled = true;
@@ -199,8 +200,8 @@ void uart_impl::start_transmission()
     if (end_pos <= start_pos)
         end_pos = UART_TX_BUF_LEN;
     tx_size = end_pos - start_pos;
-    if (tx_size > 32)
-        tx_size = 32; // no more than 32 bytes to free up space soon
+    if (tx_size > tx_max_chunk_size)
+        tx_size = tx_max_chunk_size; // limit size to free up space soon
     is_transmitting = true;
 
     // set transmit chunk
@@ -209,7 +210,6 @@ void uart_impl::start_transmission()
 
     // start transmission
     dma_enable_channel(USART_DMA, USART_DMA_TX_CHAN);
-    usart_enable_tx_dma(USART);
 
     // turn on TX LED
     tx_led_timeout_active = false;
@@ -218,10 +218,10 @@ void uart_impl::start_transmission()
 
 void uart_impl::poll_tx_complete()
 {
-    if (!dma_get_interrupt_flag(USART_DMA, USART_DMA_TX_CHAN, DMA_TCIF))
+    if (!dma_get_interrupt_flag(USART_DMA, USART_DMA_TX_CHAN, DMA_TCIF | DMA_TEIF))
         return;
 
-    dma_clear_interrupt_flags(USART_DMA, USART_DMA_TX_CHAN, DMA_TCIF);
+    dma_clear_interrupt_flags(USART_DMA, USART_DMA_TX_CHAN, DMA_TCIF | DMA_TEIF);
 
     // Update TX buffer
     int buf_tail = tx_buf_tail + tx_size;
@@ -394,14 +394,13 @@ static const uint32_t parity_enum_to_uint32[] = {
 
 void uart_impl::set_coding(int baudrate, int databits, uart_stopbits stopbits, uart_parity parity)
 {
-    _baudrate = baudrate;
     _databits = databits;
     _stopbits = stopbits;
     _parity = parity;
     int p = parity == uart_parity::none ? 0 : 1;
 
     usart_disable(USART);
-    usart_set_baudrate(USART, _baudrate);
+    set_baudrate(baudrate);
     usart_set_databits(USART, _databits + p);
     usart_set_stopbits(USART, stopbits_enum_to_uint32[(int)_stopbits]);
     usart_set_parity(USART, parity_enum_to_uint32[(int)_parity]);
@@ -409,6 +408,71 @@ void uart_impl::set_coding(int baudrate, int databits, uart_stopbits stopbits, u
 
     // High water mark is buffer size - 5ms worth of data
     rx_high_water_mark = std::max(UART_RX_BUF_LEN - baudrate / 2000, 0);
+}
+
+void uart_impl::set_baudrate(int baud)
+{
+    _baudrate = baud;
+
+#if defined(STM32F0)
+
+	uint32_t clock = rcc_apb1_frequency;
+	if ((USART == USART1) || (USART == USART6)) {
+		clock = rcc_apb2_frequency;
+	}
+
+    uint32_t brr = (clock + baud / 2) / baud;
+
+    if (brr > 0xffff) {
+        // increase too low bitrate
+        brr = 0xffff;
+        _baudrate = (clock + 0x8fff) / 0xffff;
+    }
+    
+    if (brr >= 0x10) {
+        // oversampling by 16
+        USART_CR1(USART) &= ~USART_CR1_OVER8;
+    } else {
+        // oversampling by 8
+        USART_CR1(USART) |= USART_CR1_OVER8;
+        if (brr >= 0x08) {
+            brr = 0x10 | (brr & 0x07);
+        } else {
+            // select fastest bitrate possible
+            brr = 0x10;
+            _baudrate = clock / 8;
+        }
+    }
+
+    USART_BRR(USART) = brr;
+
+#else
+	uint32_t clock = rcc_apb1_frequency;
+	if (USART == USART1)
+		clock = rcc_apb2_frequency;
+
+    uint32_t brr = (clock + baud / 2) / baud;
+
+    if (brr > 0xffff) {
+        // increase too low bitrate
+        brr = 0xffff;
+        _baudrate = (clock + 0x8fff) / 0xffff;
+    }
+
+    if (brr < 16) {
+        // select fastest bitrate possible
+        brr = 16;
+        _baudrate = clock / 16;
+    }
+
+	USART_BRR(USART) = brr;
+#endif
+
+    tx_max_chunk_size = _baudrate / 10000;
+    if (tx_max_chunk_size < 16)
+        tx_max_chunk_size = 16;
+    if (tx_max_chunk_size > 256)
+        tx_max_chunk_size = 256;
 }
 
 

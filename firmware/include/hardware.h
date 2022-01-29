@@ -8,8 +8,7 @@
  * Hardware defintions
  */
 
-#ifndef HARDWARE_H
-#define HARDWARE_H
+#pragma once
 
 // --- USB pins and clocks
 
@@ -19,15 +18,11 @@
 #define USB_DP_PIN GPIO12
 #define USB_PORT_RCC RCC_GPIOA
 
-#define USB_DRIVER st_usbfs_v2_usb_driver
-
 #elif defined(STM32F1)
 
 #define USB_DP_PORT GPIOA
 #define USB_DP_PIN GPIO12
 #define USB_PORT_RCC RCC_GPIOA
-
-#define USB_DRIVER st_usbfs_v1_usb_driver
 
 #else
 
@@ -169,7 +164,5 @@
 #define LED_TX_PORT_RCC RCC_GPIOA
 #define LED_TX_PORT GPIOA
 #define LED_TX_PIN GPIO7
-
-#endif
 
 #endif

@@ -8,16 +8,15 @@
  * USB CDC Implementation
  */
 
-#ifndef USB_CDC_H
-#define USB_CDC_H
+#pragma once
 
-#include <libopencm3/usb/usbd.h>
+#include "qusb_device.h"
 
 /// Maximum USB packet size
 #define CDCACM_PACKET_SIZE 64
 
 /// Global USB device instance
-extern usbd_device *usb_device;
+extern qusb_device *usb_device;
 
 /// Initializes the USB CDC device
 void usb_cdc_init();
@@ -35,5 +34,3 @@ void usb_cdc_poll();
  * @return `true` if it is connected, `false, otherwise
  */
 bool usb_cdc_is_connected();
-
-#endif

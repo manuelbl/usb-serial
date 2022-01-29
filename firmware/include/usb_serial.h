@@ -8,11 +8,10 @@
  * USB serial implementation
  */
 
-#ifndef USB_SERIAL_H
-#define USB_SERIAL_H
+#pragma once
 
-#include "usb_cdc.h"
-#include <libopencm3/usb/cdc.h>
+#include "qusb_device.h"
+#include "qusb_cdc.h"
 
 
 /**
@@ -48,7 +47,7 @@ public:
      * 
      * @param line_coding line coding information to fill in, in format defined by USB CDC PSTN standard
      */
-    void get_line_coding(struct usb_cdc_line_coding *line_coding);
+    void get_line_coding(struct qusb_pstn_line_coding *line_coding);
 
     /**
      * @brief Sets the line coding information of the global UART instance
@@ -58,7 +57,7 @@ public:
      * @param line_coding line coding information, in format defined by USB CDC PSTN standard
      * @return `true` if successful, `false` if line coding parameters are not supported
      */
-    bool set_line_coding(struct usb_cdc_line_coding *line_coding);
+    bool set_line_coding(struct qusb_pstn_line_coding *line_coding);
 
     /**
      * @brief Sets the control line state of the global UART instance.
@@ -94,7 +93,7 @@ public:
      * 
      * @param dev USB device
      */
-    void on_usb_data_received(usbd_device *dev);
+    void on_usb_data_received(qusb_device *dev);
 
     /**
      * @brief Called when data has been transmitted via USB.
@@ -144,9 +143,6 @@ public:
 private:
     void notify_serial_state(uint16_t state);
 
-    // indicates if data is being transmitted over USB
-    bool is_usb_transmitting;
-
     // indicates if zero-length packet is needed as previously transmitted packet was equal to maximum packet size
     bool needs_zlp;
 
@@ -166,5 +162,3 @@ private:
 
 /// Global USB Serial instance
 extern usb_serial_impl usb_serial;
-
-#endif

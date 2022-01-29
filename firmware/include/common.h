@@ -8,8 +8,7 @@
  * Common declarations
  */
 
-#ifndef COMMON_H
-#define COMMON_H
+#pragma once
 
 #include <libopencmsis/core_cm3.h>
 #include <algorithm>
@@ -39,5 +38,3 @@ void delay(uint32_t ms);
  * @return `true` if timeout time has been reached or passed, `false` otherwise
  */
 bool has_expired(uint32_t timeout);
-
-#endif

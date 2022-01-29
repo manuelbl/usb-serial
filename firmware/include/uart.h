@@ -8,8 +8,7 @@
  * UART interface
  */
 
-#ifndef UART_H
-#define UART_H
+#pragma once
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -184,6 +183,16 @@ private:
     void update_rts();
 
     /**
+     * @brief Sets the baudrate
+     * 
+     * Uses the highest oversampling mode applicable to the baudrate.
+     * Limits the baudrate if set too high.
+     * 
+     * @param baud baudrate (in bps)
+     */
+    void set_baudrate(int baud);
+
+    /**
      * Deletes the high bit of each byte.
      * 
      * It is used to support 7 data bits.
@@ -231,6 +240,7 @@ private:
     uint32_t tx_led_off_timeout;
     int rx_led_head;
     int rx_high_water_mark;
+    int tx_max_chunk_size;
 
     bool is_transmitting;
     bool is_enabled;
@@ -239,5 +249,3 @@ private:
 
 /// Global UART instance
 extern uart_impl uart;
-
-#endif

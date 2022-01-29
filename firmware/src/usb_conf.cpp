@@ -12,13 +12,13 @@
 #include "hardware.h"
 #include "usb_cdc.h"
 #include "usb_conf.h"
-#include <libopencm3/usb/cdc.h>
-#include <libopencm3/usb/usbd.h>
+#include "qusb_device.h"
+#include "qusb_cdc.h"
 #include <string.h>
 
 #define USB_VID 0x1209
 #define USB_PID 0x8048
-#define USB_DEVICE_REL 0x0100
+#define USB_DEVICE_REL 0x0120
 
 #define INTF_COMM 0 //  COMM must be immediately before DATA because of Associated Interface Descriptor.
 #define INTF_DATA 1
@@ -38,11 +38,6 @@ static const char *usb_strings[] = {
 	"USB Serial DATA 1",   //  Data interface
 };
 
-#define MSC_VENDOR_ID "CODECRET"         //  Max 8 chars
-#define MSC_PRODUCT_ID "USB Serial"      //  Max 16 chars
-#define MSC_PRODUCT_REVISION_LEVEL "1.0" //  Max 4 chars
-#define USB_CLASS_MISCELLANEOUS 0xef
-
 enum usb_strings_index
 { //  Index of USB strings.  Must sync with above, starts from 1.
 	USB_STRINGS_MANUFACTURER_ID = 1,
@@ -54,9 +49,9 @@ enum usb_strings_index
 };
 
 // USB device descriptor
-static const struct usb_device_descriptor dev_desc = {
-	.bLength = USB_DT_DEVICE_SIZE,
-	.bDescriptorType = USB_DT_DEVICE,
+static const struct qusb_device_desc dev_desc = {
+	.bLength = QUSB_DT_DEVICE_SIZE,
+	.bDescriptorType = QUSB_DT_DEVICE,
 	.bcdUSB = 0x0200,
 	.bDeviceClass = 0xEF, // miscellaneous device
 	.bDeviceSubClass = 2, // common class
@@ -72,34 +67,34 @@ static const struct usb_device_descriptor dev_desc = {
 };
 
 // Serial ACM interface
-static const struct usb_endpoint_descriptor comm_ep_1_desc[] = {
+static const struct qusb_endpoint_desc comm_ep_1_desc[] = {
 	{
-		.bLength = USB_DT_ENDPOINT_SIZE,
-		.bDescriptorType = USB_DT_ENDPOINT,
+		.bLength = QUSB_DT_ENDPOINT_SIZE,
+		.bDescriptorType = QUSB_DT_ENDPOINT,
 		.bEndpointAddress = COMM_IN_1,
-		.bmAttributes = USB_ENDPOINT_ATTR_INTERRUPT,
+		.bmAttributes = QUSB_ENDPOINT_ATTR_INTERRUPT,
 		.wMaxPacketSize = 16,
 		.bInterval = 255,
 		.extra = nullptr,
 		.extralen = 0,
 	}};
 
-static const struct usb_endpoint_descriptor data_ep_1_desc[] = {
+static const struct qusb_endpoint_desc data_ep_1_desc[] = {
 	{
-		.bLength = USB_DT_ENDPOINT_SIZE,
-		.bDescriptorType = USB_DT_ENDPOINT,
+		.bLength = QUSB_DT_ENDPOINT_SIZE,
+		.bDescriptorType = QUSB_DT_ENDPOINT,
 		.bEndpointAddress = DATA_OUT_1,
-		.bmAttributes = USB_ENDPOINT_ATTR_BULK,
+		.bmAttributes = QUSB_ENDPOINT_ATTR_BULK,
 		.wMaxPacketSize = CDCACM_PACKET_SIZE,
 		.bInterval = 1,
 		.extra = nullptr,
 		.extralen = 0,
 	},
 	{
-		.bLength = USB_DT_ENDPOINT_SIZE,
-		.bDescriptorType = USB_DT_ENDPOINT,
+		.bLength = QUSB_DT_ENDPOINT_SIZE,
+		.bDescriptorType = QUSB_DT_ENDPOINT,
 		.bEndpointAddress = DATA_IN_1,
-		.bmAttributes = USB_ENDPOINT_ATTR_BULK,
+		.bmAttributes = QUSB_ENDPOINT_ATTR_BULK,
 		.wMaxPacketSize = CDCACM_PACKET_SIZE,
 		.bInterval = 1,
 		.extra = nullptr,
@@ -108,63 +103,63 @@ static const struct usb_endpoint_descriptor data_ep_1_desc[] = {
 
 static const struct
 {
-	struct usb_cdc_header_descriptor header;
-	struct usb_cdc_call_management_descriptor call_mgmt;
-	struct usb_cdc_acm_descriptor acm;
-	struct usb_cdc_union_descriptor cdc_union;
+	struct qusb_cdc_header_desc header;
+	struct qusb_pstn_call_management_desc call_mgmt;
+	struct qusb_cdc_acm_desc acm;
+	struct qusb_cdc_union_desc cdc_union;
 } __attribute__((packed)) cdcacm_desc = {
 	.header = {
-		.bFunctionLength = sizeof(struct usb_cdc_header_descriptor),
-		.bDescriptorType = CS_INTERFACE,
-		.bDescriptorSubtype = USB_CDC_TYPE_HEADER,
+		.bFunctionLength = sizeof(struct qusb_cdc_header_desc),
+		.bDescriptorType = QUSB_CDC_CS_INTERFACE,
+		.bDescriptorSubtype = QUSB_CDC_TYPE_HEADER,
 		.bcdCDC = 0x0110,
 	},
 	.call_mgmt = { // see chapter 5.3.1 in PSTN120
-		.bFunctionLength = sizeof(struct usb_cdc_call_management_descriptor),
-		.bDescriptorType = CS_INTERFACE,
-		.bDescriptorSubtype = USB_CDC_TYPE_CALL_MANAGEMENT,
+		.bFunctionLength = sizeof(struct qusb_pstn_call_management_desc),
+		.bDescriptorType = QUSB_CDC_CS_INTERFACE,
+		.bDescriptorSubtype = QUSB_CDC_TYPE_CALL_MANAGEMENT,
 		.bmCapabilities = 0, // no call management
 		.bDataInterface = INTF_DATA,
 	},
 	.acm = { // see chapter 5.3.2 in PSTN120
-		.bFunctionLength = sizeof(struct usb_cdc_acm_descriptor),
-		.bDescriptorType = CS_INTERFACE,
-		.bDescriptorSubtype = USB_CDC_TYPE_ACM,
+		.bFunctionLength = sizeof(struct qusb_cdc_acm_desc),
+		.bDescriptorType = QUSB_CDC_CS_INTERFACE,
+		.bDescriptorSubtype = QUSB_CDC_TYPE_ACM,
 		.bmCapabilities = 2, // supports Get/SetLineCoding and SetControlLineState requests as well as SerialState notification
 	},
 	.cdc_union = {
-		.bFunctionLength = sizeof(struct usb_cdc_union_descriptor),
-		.bDescriptorType = CS_INTERFACE,
-		.bDescriptorSubtype = USB_CDC_TYPE_UNION,
+		.bFunctionLength = sizeof(struct qusb_cdc_union_desc),
+		.bDescriptorType = QUSB_CDC_CS_INTERFACE,
+		.bDescriptorSubtype = QUSB_CDC_TYPE_UNION,
 		.bControlInterface = INTF_COMM,
 		.bSubordinateInterface0 = INTF_DATA,
 	}};
 
 // CDC interfaces descriptors
-static const struct usb_interface_descriptor comm_if_1_desc[] = {
+static const struct qusb_interface_desc comm_if_1_desc[] = {
 	{
-		.bLength = USB_DT_INTERFACE_SIZE,
-		.bDescriptorType = USB_DT_INTERFACE,
+		.bLength = QUSB_DT_INTERFACE_SIZE,
+		.bDescriptorType = QUSB_DT_INTERFACE,
 		.bInterfaceNumber = INTF_COMM,
 		.bAlternateSetting = 0,
 		.bNumEndpoints = 1,
-		.bInterfaceClass = USB_CLASS_CDC,
-		.bInterfaceSubClass = USB_CDC_SUBCLASS_ACM,
-		.bInterfaceProtocol = USB_CDC_PROTOCOL_AT,
+		.bInterfaceClass = QUSB_CLASS_CDC,
+		.bInterfaceSubClass = QUSB_CDC_SUBCLASS_ACM,
+		.bInterfaceProtocol = QUSB_CDC_PROTOCOL_AT,
 		.iInterface = USB_STRINGS_COMM_1_ID,
 		.endpoint = comm_ep_1_desc,
 		.extra = &cdcacm_desc,
 		.extralen = sizeof(cdcacm_desc),
 	}};
 
-static const struct usb_interface_descriptor data_if_1_desc[] = {
+static const struct qusb_interface_desc data_if_1_desc[] = {
 	{
-		.bLength = USB_DT_INTERFACE_SIZE,
-		.bDescriptorType = USB_DT_INTERFACE,
+		.bLength = QUSB_DT_INTERFACE_SIZE,
+		.bDescriptorType = QUSB_DT_INTERFACE,
 		.bInterfaceNumber = INTF_DATA,
 		.bAlternateSetting = 0,
 		.bNumEndpoints = 2,
-		.bInterfaceClass = USB_CLASS_DATA,
+		.bInterfaceClass = QUSB_CDC_CLASS_DATA,
 		.bInterfaceSubClass = 0,
 		.bInterfaceProtocol = 0,
 		.iInterface = USB_STRINGS_DATA_1_ID,
@@ -173,19 +168,19 @@ static const struct usb_interface_descriptor data_if_1_desc[] = {
 		.extralen = 0,
 	}};
 
-static const struct usb_iface_assoc_descriptor assoc_1_desc = {
-	.bLength = USB_DT_INTERFACE_ASSOCIATION_SIZE,
-	.bDescriptorType = USB_DT_INTERFACE_ASSOCIATION,
+static const struct qusb_iface_assoc_desc assoc_1_desc = {
+	.bLength = QUSB_DT_INTERFACE_ASSOCIATION_SIZE,
+	.bDescriptorType = QUSB_DT_INTERFACE_ASSOCIATION,
 	.bFirstInterface = INTF_COMM,
 	.bInterfaceCount = 2,
-	.bFunctionClass = USB_CLASS_CDC,
-	.bFunctionSubClass = USB_CDC_SUBCLASS_ACM,
-	.bFunctionProtocol = USB_CDC_PROTOCOL_AT,
+	.bFunctionClass = QUSB_CLASS_CDC,
+	.bFunctionSubClass = QUSB_CDC_SUBCLASS_ACM,
+	.bFunctionProtocol = QUSB_CDC_PROTOCOL_AT,
 	.iFunction = USB_STRINGS_SERIAL_PORT_ID,
 };
 
 // All interfaces
-static const struct usb_interface usb_interfaces[] = {
+static const struct qusb_interface usb_interfaces[] = {
 	{
 		.cur_altsetting = nullptr,
 		.num_altsetting = 1,
@@ -200,9 +195,9 @@ static const struct usb_interface usb_interfaces[] = {
 	},
 };
 
-static const struct usb_config_descriptor config_desc = {
-	.bLength = USB_DT_CONFIGURATION_SIZE,
-	.bDescriptorType = USB_DT_CONFIGURATION,
+static const struct qusb_config_desc config_desc = {
+	.bLength = QUSB_DT_CONFIGURATION_SIZE,
+	.bDescriptorType = QUSB_DT_CONFIGURATION,
 	.wTotalLength = 0,
 	.bNumInterfaces = sizeof(usb_interfaces) / sizeof(usb_interfaces[0]),
 	.bConfigurationValue = 1,
@@ -212,9 +207,9 @@ static const struct usb_config_descriptor config_desc = {
 	.interface = usb_interfaces,
 };
 
-usbd_device *usb_conf_init()
+qusb_device *usb_conf_init()
 {
-	return usbd_init(&USB_DRIVER, &dev_desc, &config_desc,
+	return qusb_dev_init(qusb_port_fs, &dev_desc, &config_desc,
 					 usb_strings, sizeof(usb_strings) / sizeof(usb_strings[0]),
 					 usbd_control_buffer, sizeof(usbd_control_buffer));
 }

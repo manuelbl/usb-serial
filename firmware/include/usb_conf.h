@@ -8,18 +8,15 @@
  * USB device configuration
  */
 
-#ifndef USB_CONF_H
-#define USB_CONF_H
+#pragma once
 
-#include <libopencm3/usb/usbd.h>
+#include "qusb_device.h"
 
 #define DATA_OUT_1 0x01
-#define DATA_IN_1 0x81
-#define COMM_IN_1 0x82
+#define DATA_IN_1 0x82
+#define COMM_IN_1 0x83
 
 #define USB_SERIAL_NUM_LENGTH 24
 
-usbd_device *usb_conf_init();
+qusb_device *usb_conf_init();
 void usb_set_serial_number(const char *serial);
-
-#endif
