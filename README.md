@@ -8,7 +8,7 @@ Open-source hardware and firmware for a USB-to-serial adapter.
 - **No driver installation required** on Windows, Linux and macOS as it implements the USB CDC ACM and PSTN protocols. It will automatically appear as a virtual serial port (virtual COM port).
 - **Minimal components needed** as it is built around the STM32F042 MCU that can operate USB without an external crystal.
 - **Robust flow control** allowing to operate it at the limit of the selected bit rate.
-- Supports hardware flow control (RTS/CTS), bit rates from 1200 to 1,000,000 bps, control of DTR signal, notification of DSR and DCD signals.
+- Supports hardware flow control (RTS/CTS), bit rates from 1200 to 3,000,000 bps, control of DTR signal, notification of DSR and DCD signals.
 
 
 ## Supported MCUs

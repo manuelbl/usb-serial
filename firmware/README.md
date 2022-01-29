@@ -34,7 +34,7 @@ In order to upload the firmware, a ST-Link (or a JLink) adapter is needed. Conne
 pio run -t upload
 ```
 
-An ST-Link adapter can provide sufficient power to the USB-to-Serial adapter for programming it.
+An ST-Link adapter (except the lastet V3 series) can provide sufficient power to the USB-to-Serial adapter for programming it.
 
 
 ## Documentation

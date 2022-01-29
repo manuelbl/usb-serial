@@ -36,7 +36,7 @@ On the USB side, standard USB flow control is used.
 
 ### USB-to-serial path
 
-When the transmission ring buffer is becoming full, the USB *data out* endpoint (data in from the device's perspective) is set to return NAK when the host polls. This indicates that the device is currently unable to accept more data. The threshold for setting NAK is the buffer's *high-water mark*. Once the data in the buffer falls below the high-water mark, NAK is removed.
+When the transmission ring buffer is becoming full, the USB *data out* endpoint (data in from the device's perspective) is paused, i. e. it is set to return NAK when the host polls. This indicates that the device is currently unable to accept more data. The threshold for pausing is the buffer's *high-water mark*. Once the data in the buffer falls below the high-water mark, it is unpaused.
 
 For the flow control on the UART side, the hardware flow control is enabled in the UART peripheral. So it is fully automatic and no further software actions are needed. If the receiver asserts (pulls low) CTS, the UART will start the transmission of a new byte. When CTS is no longer asserted, transmission continues.
 
@@ -45,3 +45,12 @@ For the flow control on the UART side, the hardware flow control is enabled in t
 To prevent the sender from transmitting more data via the serial connection when the receive buffer is becoming full, the RTS signal is asserted in software in `uart_impl::update_rts()`, which is called frequently from the main loop. It checks the receive buffer fill level. If it exceeds the high-water mark, RTS is asserted (pulled low).
 
 No special flow control is needed on the USB side. The host polls and receives data whenever it is ready. If the host is slow at picking up data, the ring buffer fill level will raise and eventually assert the RTS signal.
+
+## USB Stack
+
+The firmware uses a custom USB stack instead of the standard *libopencm3* stack as the *libopencm3* stack has several issues:
+
+- Double-buffering is not supported. Thus, it is not able to achieve the maximum data rate of the UART.
+- USB flow-control has a design flaw that requires bigger buffers as one cannot pause the endpoint exactly when the buffer is full.
+- Bugs in stack affect this firmware.
+ 
