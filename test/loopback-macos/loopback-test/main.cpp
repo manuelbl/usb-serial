@@ -131,11 +131,14 @@ int main(int argc, char * argv[]) {
     if (rx_delay != 0)
         sleep(rx_delay);
     
+    // start time
     struct timespec start_time;
     clock_gettime(CLOCK_MONOTONIC, &start_time);
 
+    // receive data
     recv();
 
+    // end time
     struct timespec end_time;
     clock_gettime(CLOCK_MONOTONIC, &end_time);
     
@@ -175,8 +178,11 @@ int check_usage(int argc, char* argv[]) {
     try {
         options.parse_positional({"tx-port", "rx-port"});
         auto result = options.parse(argc, argv);
+        
+        if (result.count("tx-port") == 0)
+            throw cxxopts::OptionParseException("'tx-port' not specified");
     
-        if (result.count("help")) {
+        if (result.count("help") != 0) {
           std::cout << options.help() << std::endl;
           return 2;
         }

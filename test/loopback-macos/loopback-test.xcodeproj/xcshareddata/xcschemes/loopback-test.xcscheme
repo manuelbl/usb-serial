@@ -65,11 +65,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--bitrate 2000000"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/dev/cu.usbmodemEBGLSQCHKB1"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>
