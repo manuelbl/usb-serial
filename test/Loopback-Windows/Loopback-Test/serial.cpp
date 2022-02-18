@@ -13,8 +13,12 @@
 #include "serial.hpp"
 #include <windows.h>
 
-serial_port::serial_port() : _handle(NULL) { }
+serial_port::serial_port() : _hComPort(NULL), _hEvent(NULL) { }
 
+serial_port::~serial_port() {
+    if (_hEvent != NULL)
+        CloseHandle(_hEvent);
+}
 
 void serial_port::open(const char* port, int bit_rate, int data_bits, bool with_parity) {
     char port_filename[255];
@@ -24,11 +28,11 @@ void serial_port::open(const char* port, int bit_rate, int data_bits, bool with_
 #pragma warning(suppress : 6054)
     HANDLE hComPort = CreateFile(port_filename,
         GENERIC_READ | GENERIC_WRITE,   // read/write
-        0,                              // no Sharing
-        NULL,                           // no Security
+        0,                              // no sharing
+        NULL,                           // no security
         OPEN_EXISTING,                  // open existing port only
-        0,                              // non Overlapped I/O
-        NULL);                          // NULL for Comm Devices
+        FILE_FLAG_OVERLAPPED,           // overlapped I/O
+        NULL);                          // NULL for comm devices
 
     if (hComPort == INVALID_HANDLE_VALUE)
         throw serial_error("Error opening serial port", GetLastError());
@@ -51,9 +55,9 @@ void serial_port::open(const char* port, int bit_rate, int data_bits, bool with_
     }
 
     COMMTIMEOUTS timeouts = { 0 };
-    timeouts.ReadIntervalTimeout = 0;
-    timeouts.ReadTotalTimeoutConstant = 0;
-    timeouts.ReadTotalTimeoutMultiplier = 50;
+    timeouts.ReadIntervalTimeout = MAXDWORD;
+    timeouts.ReadTotalTimeoutConstant = 50;
+    timeouts.ReadTotalTimeoutMultiplier = MAXDWORD;
     timeouts.WriteTotalTimeoutConstant = 0;
     timeouts.WriteTotalTimeoutMultiplier = 0;
 
@@ -64,16 +68,16 @@ void serial_port::open(const char* port, int bit_rate, int data_bits, bool with_
         throw serial_error("Failed to set comm timeouts", err);
     }
 
-    _handle = hComPort;
+    _hComPort = hComPort;
 }
 
 
 void serial_port::close() {
-    if (_handle == NULL)
+    if (_hComPort == NULL)
         return;
     
-    HANDLE handle = _handle;
-    _handle = NULL;
+    HANDLE handle = _hComPort;
+    _hComPort = NULL;
     
     if (CloseHandle(handle) == 0)
         throw serial_error("Failed to close serial port", GetLastError());
@@ -81,32 +85,61 @@ void serial_port::close() {
 
 
 void serial_port::transmit(const uint8_t* data, int data_len) {
-    DWORD num_transmitted = 0;
-    BOOL result = WriteFile(_handle, data, data_len, &num_transmitted, NULL);
+    if (_hEvent == NULL) {
+        _hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+        if (_hEvent == NULL)
+            throw serial_error("Failed to create event object", GetLastError());
+    }
+
+    OVERLAPPED overlapped = { 0 };
+    overlapped.hEvent = _hEvent;
+    BOOL result = WriteFile(_hComPort, data, data_len, NULL, &overlapped);
+    if (result == 0) {
+        DWORD err = GetLastError();
+        if (err != ERROR_IO_PENDING)
+            throw serial_error("Failed to start transmitting data", err);
+    }
+
+    DWORD num_transferred = 0;
+    result = GetOverlappedResultEx(_hComPort, &overlapped, &num_transferred, 100, FALSE);
     if (result == 0)
         throw serial_error("Failed to transmit data", GetLastError());
-    if (num_transmitted != data_len)
+    if (overlapped.InternalHigh != data_len)
         throw serial_error("Failed to transmit data");
 }
 
 
 int serial_port::receive(uint8_t* data, int data_len) {
-    DWORD num_received = 0;
-    BOOL result = ReadFile(_handle, data, data_len, &num_received, NULL);
-    if (result == 0) {
-        throw serial_error("Failed to receive data", GetLastError());
+    if (_hEvent == NULL) {
+        _hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+        if (_hEvent == NULL)
+            throw serial_error("Failed to create event object", GetLastError());
     }
-    return num_received;
+
+    OVERLAPPED overlapped = { 0 };
+    overlapped.hEvent = _hEvent;
+    BOOL result = ReadFile(_hComPort, data, data_len, NULL, &overlapped);
+    if (result == 0) {
+        DWORD err = GetLastError();
+        if (err != ERROR_IO_PENDING)
+            throw serial_error("Failed to start receiving data", err);
+    }
+
+    DWORD num_transferred = 0;
+    result = GetOverlappedResultEx(_hComPort, &overlapped, &num_transferred, 100, FALSE);
+    if (result == 0)
+        throw serial_error("Failed to receive data", GetLastError());
+    return num_transferred;
 }
 
 
 void serial_port::drain() {
     uint8_t buf[16] = { 0 };
-    DWORD num_received = 0;
-    BOOL result = FALSE;
-    do {
-        result = ReadFile(_handle, buf, sizeof(buf), &num_received, NULL);
-    } while (result != 0 && num_received > 0);
+    while (true) {
+        int num_received = receive(buf, sizeof(buf));
+        if (num_received == 0)
+            break;
+    };
 }
 
 
@@ -115,10 +148,10 @@ void serial_port::drain() {
 
 static std::string message_from_error(DWORD errnum) {
     LPTSTR msg = NULL;
-    DWORD ret = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+    DWORD ret = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
         NULL,
         errnum,
-        0,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         (LPTSTR)&msg,
         0,
         NULL);

@@ -24,6 +24,8 @@ public:
      * The serial port is in closed state.
      */
     serial_port();
+
+    ~serial_port();
     
     /**
      * Open the specified serial port.
@@ -63,8 +65,8 @@ public:
     void drain();
     
 private:
-    void* _handle;
-    
+    void* _hComPort;
+    void* _hEvent;
 };
 
 

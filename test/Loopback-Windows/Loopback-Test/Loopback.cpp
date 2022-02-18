@@ -108,8 +108,6 @@ int main(int argc, char* argv[]) {
 
         if (rx_delay != 0)
             std::this_thread::sleep_for(seconds(rx_delay));
-        else
-            std::this_thread::sleep_for(milliseconds(100));
 
         // start time
         time_point<high_resolution_clock> start_time = high_resolution_clock::now();
@@ -119,14 +117,14 @@ int main(int argc, char* argv[]) {
 
         // end time
         time_point<high_resolution_clock> end_time = high_resolution_clock::now();
-        double duration = static_cast<double>(duration_cast<seconds>(end_time - start_time).count());
+        double duration = static_cast<double>(duration_cast<milliseconds>(end_time - start_time).count()) / 1000.0;
 
         sender.join();
         close_ports();
 
         if (!test_cancelled) {
-            int br = (int)(num_bytes * data_bits / duration);
-            double expected_net_rate = bit_rate * data_bits / (double)(data_bits + (with_parity ? 1 : 0) + 2);
+            int br = (int)((double)num_bytes * data_bits / duration);
+            double expected_net_rate = (double)bit_rate * data_bits / ((double)data_bits + (with_parity ? 1 : 0) + 2);
             printf("Successfully sent %d bytes in %.1fs\n", num_bytes, duration);
             printf("Gross bit rate: %d bps\n", bit_rate);
             printf("Net bit rate:   %d bps\n", br);
