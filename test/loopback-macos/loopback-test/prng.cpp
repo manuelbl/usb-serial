@@ -8,7 +8,7 @@
 // Pseudo random number generator
 //
 
-#include "prng.h"
+#include "prng.hpp"
 
 prng::prng(uint32_t init) : state(init), nbytes(0), bits(0) { }
 

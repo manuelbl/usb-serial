@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		645C07BA27BFB8CE0061B6C3 /* serial.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 645C07B827BFB8CE0061B6C3 /* serial.cpp */; };
 		DB275E78243E6A6A00E5A668 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DB275E77243E6A6A00E5A668 /* main.cpp */; };
 		DB33FF5B2529D34B004502F6 /* prng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DB33FF5A2529D34B004502F6 /* prng.cpp */; };
 /* End PBXBuildFile section */
@@ -24,10 +25,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		645C07B827BFB8CE0061B6C3 /* serial.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = serial.cpp; sourceTree = "<group>"; };
+		645C07B927BFB8CE0061B6C3 /* serial.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = serial.hpp; sourceTree = "<group>"; };
 		DB01C56F24E70BE1003C0697 /* cxxopts.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = cxxopts.hpp; sourceTree = "<group>"; };
 		DB275E74243E6A6A00E5A668 /* loopback-test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "loopback-test"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB275E77243E6A6A00E5A668 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		DB33FF592529D2C7004502F6 /* prng.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = prng.h; sourceTree = "<group>"; };
+		DB33FF592529D2C7004502F6 /* prng.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = prng.hpp; sourceTree = "<group>"; };
 		DB33FF5A2529D34B004502F6 /* prng.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = prng.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -63,8 +66,10 @@
 			children = (
 				DB275E77243E6A6A00E5A668 /* main.cpp */,
 				DB01C56F24E70BE1003C0697 /* cxxopts.hpp */,
-				DB33FF592529D2C7004502F6 /* prng.h */,
+				DB33FF592529D2C7004502F6 /* prng.hpp */,
 				DB33FF5A2529D34B004502F6 /* prng.cpp */,
+				645C07B827BFB8CE0061B6C3 /* serial.cpp */,
+				645C07B927BFB8CE0061B6C3 /* serial.hpp */,
 			);
 			path = "loopback-test";
 			sourceTree = "<group>";
@@ -128,6 +133,7 @@
 			files = (
 				DB33FF5B2529D34B004502F6 /* prng.cpp in Sources */,
 				DB275E78243E6A6A00E5A668 /* main.cpp in Sources */,
+				645C07BA27BFB8CE0061B6C3 /* serial.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

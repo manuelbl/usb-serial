@@ -8,8 +8,7 @@
 // Pseudo random number generator
 //
 
-#ifndef prng_h
-#define prng_h
+#pragma once
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -48,5 +47,3 @@ private:
     int nbytes;
     uint32_t bits;
 };
-
-#endif /* prng_h */
