@@ -5,7 +5,7 @@
 // Licensed under MIT License
 // https://opensource.org/licenses/MIT
 //
-// Loopback test
+// Loopback test (for macOS)
 //
 // Pseudo random data is sent to and received from serial port and compared.
 //
@@ -94,21 +94,21 @@ static void hex_dump(const char* title, const uint8_t* buf, size_t buf_len);
  * @param argc number of arguments
  * @param argv argument array
  */
-int main(int argc, char * argv[]) {
+int main(int argc, char* argv[]) {
     setlocale(LC_NUMERIC, "en_US");
-    
+
     if (check_usage(argc, argv) != 0)
         exit(1);
-    
+
     try {
         open_ports();
-        
+
         // Run send function in separate thread
         std::thread sender(send);
-        
+
         if (rx_delay != 0)
             std::this_thread::sleep_for(seconds(rx_delay));
-        
+
         // start time
         time_point<high_resolution_clock> start_time = high_resolution_clock::now();
 
@@ -117,21 +117,22 @@ int main(int argc, char * argv[]) {
 
         // end time
         time_point<high_resolution_clock> end_time = high_resolution_clock::now();
-        double duration = duration_cast<seconds>(end_time - start_time).count();
+        double duration = static_cast<double>(duration_cast<milliseconds>(end_time - start_time).count()) / 1000.0;
 
         sender.join();
         close_ports();
-    
+
         if (!test_cancelled) {
-            int br = (int)(num_bytes * data_bits / duration);
-            double expected_net_rate = bit_rate * data_bits / (double)(data_bits + (with_parity ? 1 : 0) + 2);
-            printf("Successfully sent %'d bytes in %.1fs\n", num_bytes, duration);
-            printf("Gross bit rate: %'d bps\n", bit_rate);
-            printf("Net bit rate:   %'d bps\n", br);
+            int br = (int)((double)num_bytes * data_bits / duration);
+            double expected_net_rate = (double)bit_rate * data_bits / ((double)data_bits + (with_parity ? 1 : 0) + 2);
+            printf("Successfully sent %d bytes in %.1fs\n", num_bytes, duration);
+            printf("Gross bit rate: %d bps\n", bit_rate);
+            printf("Net bit rate:   %d bps\n", br);
             printf("Overhead: %.1f%%\n", expected_net_rate * 100.0 / br - 100);
         }
-        
-    } catch (serial_error& error) {
+
+    }
+    catch (serial_error& error) {
         std::cerr << error.what() << std::endl;
         return 2;
     }
@@ -141,7 +142,7 @@ int main(int argc, char * argv[]) {
 
 
 int check_usage(int argc, char* argv[]) {
-    
+
     cxxopts::Options options("loopback", "Serial port loopback test");
 
     options.add_options()
@@ -154,17 +155,17 @@ int check_usage(int argc, char* argv[]) {
         ("s,rx-sleep", "Sleep before reception (in s)", cxxopts::value<int>()->default_value("0"))
         ("h,help", "Show usage");
     options.positional_help("tx-port [ rx-port ]").show_positional_help();
-    
+
     try {
-        options.parse_positional({"tx-port", "rx-port"});
+        options.parse_positional({ "tx-port", "rx-port" });
         auto result = options.parse(argc, argv);
-        
+
         if (result.count("tx-port") == 0)
             throw cxxopts::OptionParseException("'tx-port' not specified");
-    
+
         if (result.count("help") != 0) {
-          std::cout << options.help() << std::endl;
-          return 2;
+            std::cout << options.help() << std::endl;
+            return 2;
         }
 
         bit_rate = result["bitrate"].as<int>();
@@ -184,7 +185,8 @@ int check_usage(int argc, char* argv[]) {
         else
             recv_port_path = send_port_path;
 
-    } catch (const cxxopts::OptionException& e) {
+    }
+    catch (const cxxopts::OptionException& e) {
         std::cerr << argv[0] << ": " << e.what() << std::endl;
         std::cout << options.help() << std::endl;
         return 3;
@@ -197,7 +199,7 @@ int check_usage(int argc, char* argv[]) {
 void send() {
     prng prandom(PRNG_INIT);
     uint8_t buf[128];
-    
+
     try {
 
         int n = num_bytes;
@@ -209,7 +211,8 @@ void send() {
             send_port.transmit(buf, m);
             n -= m;
         }
-    } catch (serial_error& error) {
+    }
+    catch (serial_error& error) {
         std::cerr << error.what() << std::endl;
         test_cancelled = true;
     }
@@ -220,32 +223,33 @@ void recv() {
     uint8_t buf[128];
     uint8_t expected[128];
     prng prandom(PRNG_INIT);
-    
+
     try {
 
-    int n = 0;
-    while (n < num_bytes && !test_cancelled) {
-        int k = recv_port.receive(buf, sizeof(buf));
-        if (k == 0) {
-            std::cerr << "No more data from " << recv_port_path << " after " << n << " bytes" << std::endl;
-            test_cancelled = true;
-            return;
+        int n = 0;
+        while (n < num_bytes && !test_cancelled) {
+            int k = recv_port.receive(buf, sizeof(buf));
+            if (k == 0) {
+                std::cerr << "No more data from " << recv_port_path << " after " << n << " bytes" << std::endl;
+                test_cancelled = true;
+                return;
+            }
+
+            prandom.fill(expected, k);
+            if (data_bits == 7)
+                clear_high_bit(expected, k);
+            if (memcmp(buf, expected, k) != 0) {
+                std::cerr << "Invalid data at pos " << n << std::endl;
+                hex_dump("Expected: ", expected, k);
+                hex_dump("Received: ", buf, k);
+                test_cancelled = true;
+                return;
+            }
+            n += k;
         }
-        
-        prandom.fill(expected, k);
-        if (data_bits == 7)
-            clear_high_bit(expected, k);
-        if (memcmp(buf, expected, k) != 0) {
-            std::cerr << "Invalid data at pos " << n << std::endl;
-            hex_dump("Expected: ", expected, k);
-            hex_dump("Received: ", buf, k);
-            test_cancelled = true;
-            return;
-        }
-        n += k;
+
     }
-        
-    } catch (serial_error& error) {
+    catch (serial_error& error) {
         std::cerr << error.what() << std::endl;
         test_cancelled = true;
     }
@@ -254,11 +258,12 @@ void recv() {
 
 int open_ports() {
     send_port.open(send_port_path.c_str(), bit_rate, data_bits, with_parity);
-    
+
     if (send_port_path == recv_port_path) {
         recv_port = send_port;
-        
-    } else {
+
+    }
+    else {
         recv_port.open(recv_port_path.c_str(), bit_rate, data_bits, with_parity);
     }
 
@@ -284,12 +289,12 @@ void clear_high_bit(uint8_t* buf, size_t buf_len) {
 void hex_dump(const char* title, const uint8_t* buf, size_t buf_len)
 {
     std::cerr << title;
-    
+
     for (size_t i = 0; i < buf_len; i++) {
         if (i > 0)
             std::cerr << ' ';
         std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int)buf[i];
     }
-    
+
     std::cerr << std::endl;
 }

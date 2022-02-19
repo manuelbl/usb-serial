@@ -16,6 +16,19 @@
 #include <string>
 
 
+/**
+ * Serial port.
+ *
+ * Lightweight class for working with serial port.
+ *
+ * Opening and closing the serial port is not tied to the life-cycle of the
+ * instances. It needs to be done explicilty. Instances can be copied.
+ * However, only one instance may closed.
+ *
+ * It is safe to transmit and receive data from two separate threads.
+ * It is not safe to transmit from multiple threads or to receive from
+ * multiple threads without further synchronization.
+ */
 class serial_port {
 public:
     /**
@@ -24,7 +37,7 @@ public:
      * The serial port is in closed state.
      */
     serial_port();
-
+    
     ~serial_port();
     
     /**
@@ -70,15 +83,43 @@ private:
 };
 
 
+/**
+ * Serial port error.
+ */
 class serial_error : public std::exception {
 public:
-    serial_error(const char* message, unsigned long errnum = 0) noexcept;
+    /**
+     * Create a new exception instance.
+     *
+     * If a error number is provided, it is interpreted as a system error number and
+     * the correspoding system message is looked up. The provided message and
+     * the system message are then combined into the final message.
+     *
+     * @param message message describing error
+     * @param errnum system error number
+     */
+    serial_error(const char* message, int errnum = 0) noexcept;
+    
+    /**
+     * Destroys this instance.
+     */
     virtual ~serial_error() noexcept;
+    
+    /**
+     * Get the message describing the error.
+     *
+     * @return message
+     */
     virtual const char* what() const noexcept;
+    
+    /**
+     * Get system error code.
+     *
+     * @return error code
+     */
     long error_code();
     
 private:
     std::string _message;
     long _code;
 };
-
