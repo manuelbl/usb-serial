@@ -5,7 +5,7 @@
 // Licensed under MIT License
 // https://opensource.org/licenses/MIT
 //
-// Loopback test
+// Loopback test (for Linux)
 //
 // Pseudo random data is sent to and received from serial port and compared.
 //
@@ -19,34 +19,27 @@
 //
 
 #include "cxxopts.hpp"
-#include "prng.h"
+#include "prng.hpp"
+#include "serial.hpp"
 #include <algorithm>
-#include <fcntl.h>
 #include <iomanip>
-#include <locale.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <asm-generic/termbits.h>
-#include <asm-generic/ioctls.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
+#include <thread>
 
+using namespace std::chrono;
 
-#define PRNG_INIT 0x7b
+static constexpr uint32_t PRNG_INIT = 0x7b;
 
-
-static std::string send_port;
-static std::string recv_port;
-static int send_fd;
-static int recv_fd;
+// parsed command line arguments
+static std::string send_port_path;
+static std::string recv_port_path;
 static int num_bytes;
 static int bit_rate;
 static int data_bits;
 static bool with_parity;
 static int rx_delay;
+
+static serial_port send_port;
+static serial_port recv_port;
 static volatile bool test_cancelled = false;
 
 
@@ -66,29 +59,14 @@ static int check_usage(int argc, char* argv[]);
 static int open_ports();
 
 /**
- * Drain pending input data for specified port.
- * @param fd serial port file descriptor
- */
-static void drain_port(int fd);
-
-/**
  * Close  the serial port(s)
  */
 static void close_ports();
 
 /**
- * Opens the specified serial port
- * @param port the path to the serial port
- * @return file descriptor, or -1 on error
- */
-static int open_port(const char* port);
-
-/**
  * Sends pseudo random data to the serial port
- * @param ignore ignored parameter
- * @return always NULL
  */
-static void* send(void* ignore);
+static void send();
 
 /**
  * Receives data from the serial port and compares it with the expected data
@@ -110,58 +88,61 @@ static void clear_high_bit(uint8_t* buf, size_t buf_len);
  */
 static void hex_dump(const char* title, const uint8_t* buf, size_t buf_len);
 
+
 /**
  * Main function
  * @param argc number of arguments
  * @param argv argument array
  */
-int main(int argc, char * argv[]) {
+int main(int argc, char* argv[]) {
     setlocale(LC_NUMERIC, "en_US");
-    
+
     if (check_usage(argc, argv) != 0)
         exit(1);
-    
-    if (open_ports() != 0)
-        exit(2);
-    
-    // Run send function in separate thread
-    pthread_t t;
-    pthread_create(&t, NULL, send, NULL);
-    
-    if (rx_delay != 0)
-        sleep(rx_delay);
-    
-    // start time
-    struct timespec start_time;
-    clock_gettime(CLOCK_MONOTONIC, &start_time);
 
-    // receive data
-    recv();
+    try {
+        open_ports();
 
-    // end time
-    struct timespec end_time;
-    clock_gettime(CLOCK_MONOTONIC, &end_time);
-    
-    double duration = end_time.tv_sec - start_time.tv_sec;
-    duration += (end_time.tv_nsec - start_time.tv_nsec) / 1000000000.0;
-    
-    close_ports();
+        // Run send function in separate thread
+        std::thread sender(send);
 
-    if (!test_cancelled) {
-        int br = (int)(num_bytes * data_bits / duration);
-        double expected_net_rate = bit_rate * data_bits / (double)(data_bits + (with_parity ? 1 : 0) + 2);
-        printf("Successfully sent %'d bytes in %.1fs\n", num_bytes, duration);
-        printf("Gross bit rate: %'d bps\n", bit_rate);
-        printf("Net bit rate:   %'d bps\n", br);
-        printf("Overhead: %.1f%%\n", expected_net_rate * 100.0 / br - 100);
+        if (rx_delay != 0)
+            std::this_thread::sleep_for(seconds(rx_delay));
+
+        // start time
+        time_point<high_resolution_clock> start_time = high_resolution_clock::now();
+
+        // receive data
+        recv();
+
+        // end time
+        time_point<high_resolution_clock> end_time = high_resolution_clock::now();
+        double duration = static_cast<double>(duration_cast<milliseconds>(end_time - start_time).count()) / 1000.0;
+
+        sender.join();
+        close_ports();
+
+        if (!test_cancelled) {
+            int br = (int)((double)num_bytes * data_bits / duration);
+            double expected_net_rate = (double)bit_rate * data_bits / ((double)data_bits + (with_parity ? 1 : 0) + 2);
+            printf("Successfully sent %d bytes in %.1fs\n", num_bytes, duration);
+            printf("Gross bit rate: %d bps\n", bit_rate);
+            printf("Net bit rate:   %d bps\n", br);
+            printf("Overhead: %.1f%%\n", expected_net_rate * 100.0 / br - 100);
+        }
+
     }
-    
+    catch (serial_error& error) {
+        std::cerr << error.what() << std::endl;
+        return 2;
+    }
+
     return test_cancelled ? 3 : 0;
 }
 
 
 int check_usage(int argc, char* argv[]) {
-    
+
     cxxopts::Options options("loopback", "Serial port loopback test");
 
     options.add_options()
@@ -174,17 +155,17 @@ int check_usage(int argc, char* argv[]) {
         ("s,rx-sleep", "Sleep before reception (in s)", cxxopts::value<int>()->default_value("0"))
         ("h,help", "Show usage");
     options.positional_help("tx-port [ rx-port ]").show_positional_help();
-    
+
     try {
-        options.parse_positional({"tx-port", "rx-port"});
+        options.parse_positional({ "tx-port", "rx-port" });
         auto result = options.parse(argc, argv);
-        
+
         if (result.count("tx-port") == 0)
             throw cxxopts::OptionParseException("'tx-port' not specified");
-    
+
         if (result.count("help") != 0) {
-          std::cout << options.help() << std::endl;
-          return 2;
+            std::cout << options.help() << std::endl;
+            return 2;
         }
 
         bit_rate = result["bitrate"].as<int>();
@@ -192,7 +173,7 @@ int check_usage(int argc, char* argv[]) {
         num_bytes = result["numbytes"].as<int>();
         num_bytes = std::min(std::max(num_bytes, 1), 1000000000);
         data_bits = result["databits"].as<int>();
-        send_port = result["tx-port"].as<std::string>();
+        send_port_path = result["tx-port"].as<std::string>();
         rx_delay = result["rx-sleep"].as<int>();
         with_parity = result.count("parity") > 0;
         if (with_parity)
@@ -200,11 +181,12 @@ int check_usage(int argc, char* argv[]) {
         else
             data_bits = 8;
         if (result.count("rx-port") > 0)
-            recv_port = result["rx-port"].as<std::string>();
+            recv_port_path = result["rx-port"].as<std::string>();
         else
-            recv_port = send_port;
+            recv_port_path = send_port_path;
 
-    } catch (const cxxopts::OptionException& e) {
+    }
+    catch (const cxxopts::OptionException& e) {
         std::cerr << argv[0] << ": " << e.what() << std::endl;
         std::cout << options.help() << std::endl;
         return 3;
@@ -214,29 +196,26 @@ int check_usage(int argc, char* argv[]) {
 }
 
 
-void* send(void* ignore) {
+void send() {
     prng prandom(PRNG_INIT);
     uint8_t buf[128];
 
-    size_t n = num_bytes;
-    while (n > 0 && !test_cancelled) {
-        size_t m = std::min(sizeof(buf), n);
-        prandom.fill(buf, m);
-        if (data_bits == 7)
-            clear_high_bit(buf, m);
-        size_t k = write(send_fd, buf, m);
-        if (k != m) {
-            perror("Write failed");
-            test_cancelled = true;
-            return NULL;
+    try {
+
+        int n = num_bytes;
+        while (n > 0 && !test_cancelled) {
+            int m = std::min((int)sizeof(buf), n);
+            prandom.fill(buf, m);
+            if (data_bits == 7)
+                clear_high_bit(buf, m);
+            send_port.transmit(buf, m);
+            n -= m;
         }
-        n -= m;
     }
-    
-    // tcdrain(send_fd);
-    ioctl(send_fd, TCSBRK, 1);
-    
-    return NULL;
+    catch (serial_error& error) {
+        std::cerr << error.what() << std::endl;
+        test_cancelled = true;
+    }
 }
 
 
@@ -244,142 +223,78 @@ void recv() {
     uint8_t buf[128];
     uint8_t expected[128];
     prng prandom(PRNG_INIT);
-    size_t n = 0;
-    
-    while (n < num_bytes && !test_cancelled) {
-        ssize_t k = read(recv_fd, buf, sizeof(buf));
-        if (k == 0) {
-            std::cerr << "No more data from " << recv_port << " after " << n << " bytes\n" << std::endl;
-            test_cancelled = true;
-            return;
+
+    try {
+
+        int n = 0;
+        while (n < num_bytes && !test_cancelled) {
+            int k = recv_port.receive(buf, sizeof(buf));
+            if (k == 0) {
+                std::cerr << "No more data from " << recv_port_path << " after " << n << " bytes" << std::endl;
+                test_cancelled = true;
+                return;
+            }
+
+            prandom.fill(expected, k);
+            if (data_bits == 7)
+                clear_high_bit(expected, k);
+            if (memcmp(buf, expected, k) != 0) {
+                std::cerr << "Invalid data at pos " << n << std::endl;
+                hex_dump("Expected: ", expected, k);
+                hex_dump("Received: ", buf, k);
+                test_cancelled = true;
+                return;
+            }
+            n += k;
         }
-        
-        prandom.fill(expected, k);
-        if (data_bits == 7)
-            clear_high_bit(expected, k);
-        if (memcmp(buf, expected, k) != 0) {
-            std::cerr << "Invalid data at pos " << n << std::endl;
-            hex_dump("Expected: ", expected, k);
-            hex_dump("Received: ", buf, k);
-            test_cancelled = true;
-            return;
-        }
-        n += k;
+
+    }
+    catch (serial_error& error) {
+        std::cerr << error.what() << std::endl;
+        test_cancelled = true;
     }
 }
 
 
 int open_ports() {
-    send_fd = open_port(send_port.c_str());
-    if (send_fd == -1)
-        return -1;
-    
-    if (send_port == recv_port) {
-        recv_fd = send_fd;
-        
-    } else {
-        recv_fd = open_port(recv_port.c_str());
-        if (recv_fd == -1) {
-            close(send_fd);
-            return -1;
-        }
+    send_port.open(send_port_path.c_str(), bit_rate, data_bits, with_parity);
+
+    if (send_port_path == recv_port_path) {
+        recv_port = send_port;
+
+    }
+    else {
+        recv_port.open(recv_port_path.c_str(), bit_rate, data_bits, with_parity);
     }
 
-    drain_port(recv_fd);
+    recv_port.drain();
     return 0;
 }
 
 
-void drain_port(int fd) {
-    uint8_t buf[16];
-    ssize_t k;
-    do {
-        k = read(recv_fd, buf, sizeof(buf));
-    } while (k > 0);
-}
-
-
 void close_ports() {
-    drain_port(recv_fd);
-    
-    close(send_fd);
-    if (send_fd != recv_fd)
-        close(recv_fd);
+    recv_port.drain();
+    send_port.close();
+    if (recv_port_path != send_port_path)
+        recv_port.close();
 }
 
-
-/**
- * Sets the specified bits in the specified flags value.
- * @param flags flags value
- * @param bits bits to set
- */
-static inline void set_bits(unsigned int& flags, unsigned int bits) {
-    flags |= bits;
-}
-
-
-/**
- * Clears the specified bits in the specified flags value.
- * @param flags flags value
- * @param bits bits to clear
- */
-static inline void clear_bits(unsigned int& flags, unsigned int bits) {
-    flags &= ~bits;
-}
-
-
-int open_port(const char* port) {
-    int fd = open(port, O_RDWR | O_NOCTTY);
-    if (fd == -1) {
-        perror("Unable to open serial port");
-        return fd;
-    }
-
-     struct termios2 options;
-    // tcgetattr(fd, &options);
-    ioctl(fd, TCGETS2, &options);
-
-    // Turn off all interactive / terminal features
-    clear_bits(options.c_iflag, IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-    set_bits(options.c_iflag, IGNPAR | IGNBRK);
-    clear_bits(options.c_oflag, OPOST | ONLCR | OCRNL);
-    set_bits(options.c_oflag, 0);
-    clear_bits(options.c_cflag, PARENB | PARODD | CSTOPB | CSIZE | CBAUD);
-    set_bits(options.c_cflag, CRTSCTS | CLOCAL | CREAD | BOTHER);
-    clear_bits(options.c_lflag, ICANON | IEXTEN | ISIG | ECHO | ECHOE | ECHONL);
-    set_bits(options.c_lflag, 0);
-
-    set_bits(options.c_cflag, data_bits == 7 ? CS7 : CS8);
-    if (with_parity)
-        set_bits(options.c_cflag, PARENB);
-
-    // Read returns if no character has been received in 10ms
-    options.c_cc[VTIME] = 1;
-    options.c_cc[VMIN]  = 0;
-
-    options.c_ispeed = bit_rate;
-    options.c_ospeed = bit_rate;
-    
-    // tcsetattr(fd, TCSANOW, &options);
-    ioctl(fd, TCSETS2, &options);
-
-    return fd;
-}
 
 void clear_high_bit(uint8_t* buf, size_t buf_len) {
     for (int i = 0; i < buf_len; i++)
         buf[i] &= 0x7f;
 }
 
+
 void hex_dump(const char* title, const uint8_t* buf, size_t buf_len)
 {
     std::cerr << title;
-    
+
     for (size_t i = 0; i < buf_len; i++) {
         if (i > 0)
             std::cerr << ' ';
         std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int)buf[i];
     }
-    
+
     std::cerr << std::endl;
 }

@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-set(SOURCES main.cpp prng.h prng.cpp main.cpp)
+set(SOURCES main.cpp serial.hpp serial.cpp prng.hpp prng.cpp main.cpp)
 
 add_executable(loopback-linux ${SOURCES})
 target_link_libraries(loopback-linux Threads::Threads)
