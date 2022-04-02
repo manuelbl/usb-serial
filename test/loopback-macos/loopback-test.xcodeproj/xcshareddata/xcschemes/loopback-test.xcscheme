@@ -56,6 +56,10 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--outstanding 128"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--rx-sleep 20"
             isEnabled = "NO">
          </CommandLineArgument>
@@ -65,7 +69,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--bitrate 2000000"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/dev/cu.usbmodemEBGLSQCHKB1"

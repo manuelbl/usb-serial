@@ -42,6 +42,10 @@ static serial_port send_port;
 static serial_port recv_port;
 static volatile bool test_cancelled = false;
 
+static int max_outstanding_bytes;
+static int outstanding_bytes;
+std::mutex outstanding_data_mutex; // protects outstanding_bytes
+std::condition_variable outstanding_data_condition; // to be used with outstanding_data_mutex
 
 /**
  * Checks the program arguments
@@ -153,6 +157,7 @@ int check_usage(int argc, char* argv[]) {
         ("p,parity", "Enable parity bit")
         ("d,databits", "Data bits (7 or 8)", cxxopts::value<int>()->default_value("8"))
         ("s,rx-sleep", "Sleep before reception (in s)", cxxopts::value<int>()->default_value("0"))
+        ("o,outstanding", "Maximum data outstanding in transit (in bytes)", cxxopts::value<int>()->default_value("999999999"))
         ("h,help", "Show usage");
     options.positional_help("tx-port [ rx-port ]").show_positional_help();
 
@@ -175,6 +180,7 @@ int check_usage(int argc, char* argv[]) {
         data_bits = result["databits"].as<int>();
         send_port_path = result["tx-port"].as<std::string>();
         rx_delay = result["rx-sleep"].as<int>();
+        max_outstanding_bytes = result["outstanding"].as<int>();
         with_parity = result.count("parity") > 0;
         if (with_parity)
             data_bits = std::min(std::max(data_bits, 7), 8);
@@ -198,7 +204,7 @@ int check_usage(int argc, char* argv[]) {
 
 void send() {
     prng prandom(PRNG_INIT);
-    uint8_t buf[128];
+    uint8_t buf[64];
 
     try {
 
@@ -208,8 +214,26 @@ void send() {
             prandom.fill(buf, m);
             if (data_bits == 7)
                 clear_high_bit(buf, m);
+            
+            // wait until outstanding data is low enough to send next chunk
+            {
+                std::unique_lock<std::mutex> lock(outstanding_data_mutex);
+                outstanding_data_condition.wait(lock, []{
+                    return outstanding_bytes + sizeof(buf) <= max_outstanding_bytes
+                        || test_cancelled;
+                });
+                if (test_cancelled)
+                    return;
+            }
+            
             send_port.transmit(buf, m);
             n -= m;
+            
+            // update outstanding data
+            {
+                std::unique_lock<std::mutex> lock(outstanding_data_mutex);
+                outstanding_bytes += m;
+            }
         }
     }
     catch (serial_error& error) {
@@ -220,8 +244,8 @@ void send() {
 
 
 void recv() {
-    uint8_t buf[128];
-    uint8_t expected[128];
+    uint8_t buf[64];
+    uint8_t expected[64];
     prng prandom(PRNG_INIT);
 
     try {
@@ -234,6 +258,13 @@ void recv() {
                 test_cancelled = true;
                 return;
             }
+            
+            // update outstanding data and notify sender
+            {
+                std::unique_lock<std::mutex> lock(outstanding_data_mutex);
+                outstanding_bytes -= k;
+            }
+            outstanding_data_condition.notify_one();
 
             prandom.fill(expected, k);
             if (data_bits == 7)
@@ -252,6 +283,7 @@ void recv() {
     catch (serial_error& error) {
         std::cerr << error.what() << std::endl;
         test_cancelled = true;
+        outstanding_data_condition.notify_one();
     }
 }
 
