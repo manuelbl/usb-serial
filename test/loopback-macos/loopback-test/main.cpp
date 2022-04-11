@@ -22,7 +22,9 @@
 #include "prng.hpp"
 #include "serial.hpp"
 #include <algorithm>
+#include <condition_variable>
 #include <iomanip>
+#include <mutex>
 #include <thread>
 
 using namespace std::chrono;
@@ -37,12 +39,12 @@ static int bit_rate;
 static int data_bits;
 static bool with_parity;
 static int rx_delay;
+static int max_outstanding_bytes;
 
 static serial_port send_port;
 static serial_port recv_port;
 static volatile bool test_cancelled = false;
 
-static int max_outstanding_bytes;
 static int outstanding_bytes;
 std::mutex outstanding_data_mutex; // protects outstanding_bytes
 std::condition_variable outstanding_data_condition; // to be used with outstanding_data_mutex
