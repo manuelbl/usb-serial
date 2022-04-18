@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "qusb_device.h"
-#include "qusb_cdc.h"
+#include "qsb_device.h"
+#include "qsb_cdc.h"
 
 
 /**
@@ -47,7 +47,7 @@ public:
      * 
      * @param line_coding line coding information to fill in, in format defined by USB CDC PSTN standard
      */
-    void get_line_coding(struct qusb_pstn_line_coding *line_coding);
+    void get_line_coding(qsb_pstn_line_coding *line_coding);
 
     /**
      * @brief Sets the line coding information of the global UART instance
@@ -57,7 +57,7 @@ public:
      * @param line_coding line coding information, in format defined by USB CDC PSTN standard
      * @return `true` if successful, `false` if line coding parameters are not supported
      */
-    bool set_line_coding(struct qusb_pstn_line_coding *line_coding);
+    bool set_line_coding(qsb_pstn_line_coding *line_coding);
 
     /**
      * @brief Sets the control line state of the global UART instance.
@@ -93,7 +93,7 @@ public:
      * 
      * @param dev USB device
      */
-    void on_usb_data_received(qusb_device *dev);
+    void on_usb_data_received(qsb_device *dev);
 
     /**
      * @brief Called when data has been transmitted via USB.

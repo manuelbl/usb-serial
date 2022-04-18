@@ -1,5 +1,5 @@
 //
-// Qusb USB Device Library for libopencm3
+// QSB USB Device Library for libopencm3
 //
 // Copyright (c) 2021 Manuel Bleichenbacher
 // Copyright (c) 2009 Piotr Esden-Tempski <piotr@esden.net>
@@ -126,7 +126,7 @@
 // Endpoint kind bits for USB_EP_KIND
 #define USB_EP_KIND_DBL_BUF     0x0100 // Double buffering
 
-#if QUSB_FSDEV_SUBTYPE >= 2
+#if QSB_FSDEV_SUBTYPE >= 2
 
 // --- Link power management register definitions ----------------------------------------------
 
@@ -152,7 +152,7 @@
 
 #endif
 
-#if QUSB_FSDEV_SUBTYPE >= 3
+#if QSB_FSDEV_SUBTYPE >= 3
 
 // --- Battery charging register definitions ----------------------------------------------------------
 

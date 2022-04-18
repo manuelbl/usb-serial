@@ -19,47 +19,47 @@
 #endif
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
-#include "qusb_device.h"
+#include "qsb_device.h"
 #include <string.h>
 
-qusb_device *usb_device;
+qsb_device *usb_device;
 
 static uint16_t configured;
 
 // Process ACM requests on control endpoint
-static enum qusb_request_return_code cdc_control_request(
-	__attribute__((unused)) qusb_device *dev,
-	struct qusb_setup_data *req, uint8_t **buf, uint16_t *len,
-	__attribute__((unused)) qusb_dev_control_completion_callback_fn *complete)
+static enum qsb_request_return_code cdc_control_request(
+	__attribute__((unused)) qsb_device *dev,
+	qsb_setup_data *req, uint8_t **buf, uint16_t *len,
+	__attribute__((unused)) qsb_dev_control_completion_callback_fn *complete)
 {
 	switch (req->bRequest)
 	{
-	case QUSB_PSTN_REQ_SET_LINE_CODING:
-		if (*len < sizeof(struct qusb_pstn_line_coding))
-			return QUSB_REQ_NOTSUPP;
+	case QSB_PSTN_REQ_SET_LINE_CODING:
+		if (*len < sizeof(qsb_pstn_line_coding))
+			return QSB_REQ_NOTSUPP;
 
 		if (req->wIndex != 0)
-			return QUSB_REQ_NOTSUPP;
+			return QSB_REQ_NOTSUPP;
 
-		return usb_serial.set_line_coding((struct qusb_pstn_line_coding *)*buf) ? QUSB_REQ_HANDLED : QUSB_REQ_NOTSUPP;
+		return usb_serial.set_line_coding((qsb_pstn_line_coding *)*buf) ? QSB_REQ_HANDLED : QSB_REQ_NOTSUPP;
 		
 
-	case QUSB_PSTN_REQ_GET_LINE_CODING:
-		if (*len < sizeof(struct qusb_pstn_line_coding))
-			return QUSB_REQ_NOTSUPP;
+	case QSB_PSTN_REQ_GET_LINE_CODING:
+		if (*len < sizeof(qsb_pstn_line_coding))
+			return QSB_REQ_NOTSUPP;
 
 		if (req->wIndex != 0)
-			return QUSB_REQ_NOTSUPP;
+			return QSB_REQ_NOTSUPP;
 
-		usb_serial.get_line_coding((struct qusb_pstn_line_coding *)*buf);
-		*len = sizeof(struct qusb_pstn_line_coding);
-		return QUSB_REQ_HANDLED;
+		usb_serial.get_line_coding((qsb_pstn_line_coding *)*buf);
+		*len = sizeof(qsb_pstn_line_coding);
+		return QSB_REQ_HANDLED;
 
-	case QUSB_PSTN_REQ_SET_CONTROL_LINE_STATE:
+	case QSB_PSTN_REQ_SET_CONTROL_LINE_STATE:
 		usb_serial.set_control_line_state(req->wValue);
-		return QUSB_REQ_HANDLED;
+		return QSB_REQ_HANDLED;
 	}
-	return QUSB_REQ_NEXT_HANDLER;
+	return QSB_REQ_NEXT_HANDLER;
 }
 
 bool usb_cdc_is_connected()
@@ -67,13 +67,13 @@ bool usb_cdc_is_connected()
 	return configured != 0;
 }
 
-static void cdc_set_config(qusb_device *dev, uint16_t wValue)
+static void cdc_set_config(qsb_device *dev, uint16_t wValue)
 {
 	configured = wValue;
 
-	qusb_dev_register_control_callback(dev,
-								   QUSB_REQ_TYPE_CLASS | QUSB_REQ_TYPE_INTERFACE,
-								   QUSB_REQ_TYPE_TYPE_MASK | QUSB_REQ_TYPE_RECIPIENT_MASK,
+	qsb_dev_register_control_callback(dev,
+								   QSB_REQ_TYPE_CLASS     | QSB_REQ_TYPE_INTERFACE,
+								   QSB_REQ_TYPE_TYPE_MASK | QSB_REQ_TYPE_RECIPIENT_MASK,
 								   cdc_control_request);
 
 	// Serial interface
@@ -116,10 +116,10 @@ void usb_cdc_init()
 	usb_device = usb_conf_init();
 
 	// Set callback for config calls
-	qusb_dev_register_set_config_callback(usb_device, cdc_set_config);
+	qsb_dev_register_set_config_callback(usb_device, cdc_set_config);
 }
 
 void usb_cdc_poll()
 {
-	qusb_dev_poll(usb_device);
+	qsb_dev_poll(usb_device);
 }

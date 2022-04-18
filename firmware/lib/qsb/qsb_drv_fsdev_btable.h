@@ -1,5 +1,5 @@
 //
-// Qusb USB Device Library for libopencm3
+// QSB USB Device Library for libopencm3
 //
 // Copyright (c) 2021 Manuel Bleichenbacher
 // Copyright (c) 2010 Gareth McMullin <gareth@blacksphere.co.nz>
@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "qusb_private.h"
+#include "qsb_private.h"
 
 /**
  * Setup buffer in packet memory for RX.
@@ -26,7 +26,7 @@
  * @param size buffer size (in bytes)
  * @param pm_top packet memory top address (relative to base address)
  */
-void qusb_fsdev_setup_buf_rx(uint8_t ep, qusb_buf_desc_offset offset, uint32_t size, uint16_t* pm_top);
+void qsb_fsdev_setup_buf_rx(uint8_t ep, qsb_buf_desc_offset offset, uint32_t size, uint16_t* pm_top);
 
 /**
  * Setup buffer in packet memory for TX.
@@ -39,7 +39,7 @@ void qusb_fsdev_setup_buf_rx(uint8_t ep, qusb_buf_desc_offset offset, uint32_t s
  * @param size buffer size (in bytes)
  * @param pm_top packet memory top address (relative to base address)
  */
-void qusb_fsdev_setup_buf_tx(uint8_t ep, qusb_buf_desc_offset offset, uint32_t size, uint16_t* pm_top);
+void qsb_fsdev_setup_buf_tx(uint8_t ep, qsb_buf_desc_offset offset, uint32_t size, uint16_t* pm_top);
 
 /**
  * Get the length of the transmitted or received data.
@@ -48,7 +48,7 @@ void qusb_fsdev_setup_buf_tx(uint8_t ep, qusb_buf_desc_offset offset, uint32_t s
  * @param offset Offset within buffer descriptor table (0 or 1)
  * @return length (in bytes)
  */
-uint32_t qusb_fsdev_get_len(uint8_t ep, qusb_buf_desc_offset offset);
+uint32_t qsb_fsdev_get_len(uint8_t ep, qsb_buf_desc_offset offset);
 
 /**
  * Copy a data buffer to USB packet memory.
@@ -58,7 +58,7 @@ uint32_t qusb_fsdev_get_len(uint8_t ep, qusb_buf_desc_offset offset);
  * @param buf pointer to data buffer (source)
  * @param len length of data
  */
-void qusb_fsdev_copy_to_pma(uint8_t ep, qusb_buf_desc_offset offset, const uint8_t* buf, uint32_t len);
+void qsb_fsdev_copy_to_pma(uint8_t ep, qsb_buf_desc_offset offset, const uint8_t* buf, uint32_t len);
 
 /**
  * Copy USB packet memory into a data buffer.
@@ -70,4 +70,4 @@ void qusb_fsdev_copy_to_pma(uint8_t ep, qusb_buf_desc_offset offset, const uint8
  * @return number of bytes copied
  */
 
-uint32_t qusb_fsdev_copy_from_pma(uint8_t* buf, uint32_t len, uint8_t ep, qusb_buf_desc_offset offset);
+uint32_t qsb_fsdev_copy_from_pma(uint8_t* buf, uint32_t len, uint8_t ep, qsb_buf_desc_offset offset);

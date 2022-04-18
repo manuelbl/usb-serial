@@ -10,13 +10,13 @@
 
 #pragma once
 
-#include "qusb_device.h"
+#include "qsb_device.h"
 
 /// Maximum USB packet size
 #define CDCACM_PACKET_SIZE 64
 
 /// Global USB device instance
-extern qusb_device *usb_device;
+extern qsb_device *usb_device;
 
 /// Initializes the USB CDC device
 void usb_cdc_init();

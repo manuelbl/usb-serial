@@ -1,5 +1,5 @@
 //
-// Qusb USB Device Library for libopencm3
+// QSB USB Device Library for libopencm3
 //
 // Copyright (c) 2021 Manuel Bleichenbacher
 // Copyright (c) 2010 Gareth McMullin <gareth@blacksphere.co.nz>
@@ -16,11 +16,11 @@
 // to unexpected results. It must always be access with 16-bit half word operations.
 //
 
-#include "qusb_config.h"
+#include "qsb_config.h"
 
-#if QUSB_ARCH == QUSB_ARCH_FSDEV && QUSB_FSDEV_BTABLE_TYPE == 2
+#if QSB_ARCH == QSB_ARCH_FSDEV && QSB_FSDEV_BTABLE_TYPE == 2
 
-#include "qusb_drv_fsdev_btable.h"
+#include "qsb_drv_fsdev_btable.h"
 #include <libopencm3/stm32/memorymap.h>
 
 // --- USB BTABLE Registers ------------------------------------------------
@@ -44,7 +44,7 @@ static inline volatile void* get_pma_addr(buf_desc* desc)
     return (volatile void*)(USB_PMA_BASE + desc->addr);
 }
 
-void qusb_fsdev_setup_buf_rx(uint8_t ep, qusb_buf_desc_offset offset, uint32_t size, uint16_t* pm_top)
+void qsb_fsdev_setup_buf_rx(uint8_t ep, qsb_buf_desc_offset offset, uint32_t size, uint16_t* pm_top)
 {
     uint32_t eff_size;
     if (size > 62) {
@@ -69,7 +69,7 @@ void qusb_fsdev_setup_buf_rx(uint8_t ep, qusb_buf_desc_offset offset, uint32_t s
     *pm_top += eff_size;
 }
 
-void qusb_fsdev_setup_buf_tx(uint8_t ep, qusb_buf_desc_offset offset, uint32_t size, uint16_t* pm_top)
+void qsb_fsdev_setup_buf_tx(uint8_t ep, qsb_buf_desc_offset offset, uint32_t size, uint16_t* pm_top)
 {
     buf_desc* desc = get_buf_desc(ep, offset);
     desc->addr = *pm_top;
@@ -77,13 +77,13 @@ void qusb_fsdev_setup_buf_tx(uint8_t ep, qusb_buf_desc_offset offset, uint32_t s
     *pm_top += size;
 }
 
-uint32_t qusb_fsdev_get_len(uint8_t ep, qusb_buf_desc_offset offset)
+uint32_t qsb_fsdev_get_len(uint8_t ep, qsb_buf_desc_offset offset)
 {
     buf_desc* desc = get_buf_desc(ep, offset);
     return desc->count & 0x3ff;
 }
 
-void qusb_fsdev_copy_to_pma(uint8_t ep, qusb_buf_desc_offset offset, const uint8_t* buf, uint32_t len)
+void qsb_fsdev_copy_to_pma(uint8_t ep, qsb_buf_desc_offset offset, const uint8_t* buf, uint32_t len)
 {
     buf_desc* desc = get_buf_desc(ep, offset);
     desc->count = len;
@@ -97,10 +97,10 @@ void qusb_fsdev_copy_to_pma(uint8_t ep, qusb_buf_desc_offset offset, const uint8
         *tgt = buf[len - 1];
 }
 
-uint32_t qusb_fsdev_copy_from_pma(uint8_t* buf, uint32_t len, uint8_t ep, qusb_buf_desc_offset offset)
+uint32_t qsb_fsdev_copy_from_pma(uint8_t* buf, uint32_t len, uint8_t ep, qsb_buf_desc_offset offset)
 {
     buf_desc* desc = get_buf_desc(ep, offset);
-    len = min_u32(len, desc->count & 0x3ff);
+    len = imin(len, desc->count & 0x3ff);
     const volatile uint16_t* src = get_pma_addr(desc);
 
     if (((uintptr_t)buf) & 0x01) {

@@ -1,5 +1,5 @@
 //
-// Qusb USB Device Library for libopencm3
+// QSB USB Device Library for libopencm3
 //
 // Copyright (c) 2021 Manuel Bleichenbacher
 // Licensed under LGPL License https://opensource.org/licenses/LGPL-3.0
@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "qusb_fsdev.h"
+#include "qsb_fsdev.h"
 
 // The USB endpoint register is difficult to modify as it contains bits with four different behaviors:
 //
@@ -38,7 +38,7 @@
  * @param val new value
  * @param mask bit mask
  */
-static inline void qusb_ep_set_toggle_bits(uint8_t ep, uint32_t val, uint32_t mask)
+static inline void qsb_ep_toggle_bits(uint8_t ep, uint32_t val, uint32_t mask)
 {
     // get bits with r/w behavior that need to be written without change plus affected bits
     uint32_t reg = USB_EP(ep) & (USB_EP_RW_BITS_MSK | mask);
@@ -59,7 +59,7 @@ static inline void qusb_ep_set_toggle_bits(uint8_t ep, uint32_t val, uint32_t ma
  * @param ep endpoint
  * @param val new value
  */
-static inline void qusb_ep_set_all_rw_bits(uint8_t ep, uint32_t val)
+static inline void qsb_ep_set_all_rw_bits(uint8_t ep, uint32_t val)
 {
     // set bits that need to be written 1 to not change
     uint32_t reg = USB_EP_W0_BITS_MSK;
@@ -70,81 +70,63 @@ static inline void qusb_ep_set_all_rw_bits(uint8_t ep, uint32_t val)
 }
 
 /// Set endpoint RX status to specified value
-static inline void qusb_ep_stat_rx_set(uint8_t ep, uint32_t stat)
+static inline void qsb_ep_stat_rx_set(uint8_t ep, uint32_t stat)
 {
-    qusb_ep_set_toggle_bits(ep, stat, USB_EP_STAT_RX);
+    qsb_ep_toggle_bits(ep, stat, USB_EP_STAT_RX);
 }
 
 /// Set endpoint TX status to specified value
-static inline void qusb_ep_stat_tx_set(uint8_t ep, uint32_t stat)
+static inline void qsb_ep_stat_tx_set(uint8_t ep, uint32_t stat)
 {
-    qusb_ep_set_toggle_bits(ep, stat, USB_EP_STAT_TX);
-}
-
-/// Enable double-buffering for endpoint
-static inline void qusb_ep_dbl_buf_set(uint8_t ep)
-{
-    qusb_ep_set_all_rw_bits(ep, USB_EP_KIND_DBL_BUF | USB_EP_TYPE_BULK | ep);
+    qsb_ep_toggle_bits(ep, stat, USB_EP_STAT_TX);
 }
 
 /// Clear the DTOG_RX bit
-static inline void qusb_ep_dtog_rx_clear(uint8_t ep)
+static inline void qsb_ep_dtog_rx_clear(uint8_t ep)
 {
-    qusb_ep_set_toggle_bits(ep, 0, USB_EP_DTOG_RX);
+    qsb_ep_toggle_bits(ep, 0, USB_EP_DTOG_RX);
 }
 
 /// Clear the DTOG_TX bit
-static inline void qusb_ep_dtog_tx_clear(uint8_t ep)
+static inline void qsb_ep_dtog_tx_clear(uint8_t ep)
 {
-    qusb_ep_set_toggle_bits(ep, 0, USB_EP_DTOG_TX);
-}
-
-/// Clear the SW_BUF_RX bit
-static inline void qusb_ep_sw_buf_rx_clear(uint8_t ep)
-{
-    qusb_ep_set_toggle_bits(ep, 0, USB_EP_SW_BUF_RX);
+    qsb_ep_toggle_bits(ep, 0, USB_EP_DTOG_TX);
 }
 
 /// Set the SW_BUF_RX bit
-static inline void qusb_ep_sw_buf_rx_set(uint8_t ep)
+static inline void qsb_ep_sw_buf_rx_set(uint8_t ep)
 {
-    qusb_ep_set_toggle_bits(ep, USB_EP_SW_BUF_RX, USB_EP_SW_BUF_RX);
+    qsb_ep_toggle_bits(ep, USB_EP_SW_BUF_RX, USB_EP_SW_BUF_RX);
 }
 
 /// Clear the SW_BUF_TX bit
-static inline void qusb_ep_sw_buf_tx_clear(uint8_t ep)
+static inline void qsb_ep_sw_buf_tx_clear(uint8_t ep)
 {
-    qusb_ep_set_toggle_bits(ep, 0, USB_EP_SW_BUF_TX);
-}
-
-/// Set the SW_BUF_TX bit
-static inline void qusb_ep_sw_buf_tx_set(uint8_t ep)
-{
-    qusb_ep_set_toggle_bits(ep, USB_EP_SW_BUF_TX, USB_EP_SW_BUF_TX);
+    qsb_ep_toggle_bits(ep, 0, USB_EP_SW_BUF_TX);
 }
 
 /// Toggle the SW_BUF_RX bit
-static inline void qusb_ep_sw_buf_rx_toggle(uint8_t ep)
+static inline void qsb_ep_sw_buf_rx_toggle(uint8_t ep)
 {
     // This function is only used in double buffering mode so KIND_DBL_BUF and TYPE_BULK is assumed.
     USB_EP(ep) = USB_EP_KIND_DBL_BUF | USB_EP_TYPE_BULK | ep | USB_EP_W0_BITS_MSK | USB_EP_SW_BUF_RX;
 }
 
 /// Toggle the SW_BUF_TX bit
-static inline void qusb_ep_sw_buf_tx_toggle(uint8_t ep)
+static inline void qsb_ep_sw_buf_tx_toggle(uint8_t ep)
 {
     // This function is only used in double buffering mode so KIND_DBL_BUF and TYPE_BULK is assumed.
     USB_EP(ep) = USB_EP_KIND_DBL_BUF | USB_EP_TYPE_BULK | ep | USB_EP_W0_BITS_MSK | USB_EP_SW_BUF_TX;
 }
 
 /// Clear the CTR_RX bit
-static inline void qusb_ep_ctr_rx_clear(uint8_t ep)
+static inline void qsb_ep_ctr_rx_clear(uint8_t ep)
 {
     USB_EP(ep) = (USB_EP(ep) & USB_EP_RW_BITS_MSK) | USB_EP_CTR_TX;
 }
 
 /// Clear the CTR_TX bit
-static inline void qusb_ep_ctr_tx_clear(uint8_t ep)
+static inline void qsb_ep_ctr_tx_clear(uint8_t ep)
 {
     USB_EP(ep) = (USB_EP(ep) & USB_EP_RW_BITS_MSK) | USB_EP_CTR_RX;
 }
